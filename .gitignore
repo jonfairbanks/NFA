@@ -131,3 +131,5 @@ dist
 
 #nitro environment
 ./SmartContracts/nitro
+
+*/.DS_Store
