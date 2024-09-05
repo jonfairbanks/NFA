@@ -128,3 +128,8 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+#nitro environment
+./SmartContracts/nitro
+
+*/.DS_Store
