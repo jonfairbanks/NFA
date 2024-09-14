@@ -1,9 +1,15 @@
+initSmartContracts:
+	make deployContracts
+	make createTestNFA
+
 runBlockchainLocal:
 	cd ./SmartContracts && ./runLocalTestNode.sh
 testContracts:
-	cd ./SmartContracts && npx hardhat npx hardhat test --network localhost
+	cd ./SmartContracts && npx hardhat test --network localhost
 deployContracts:
-	cd ./SmartContracts && npx hardhat run scripts/deploy.js --network localhost
+	cd ./SmartContracts && npx hardhat run tasks/deploy.ts --network localhost
+createTestNFA:
+	cd ./SmartContracts && npx hardhat run tasks/createTestNFA.ts --network localhost
 
 TEMP_FILE_PATH ?= ./temp-files
 REPOS ?= 

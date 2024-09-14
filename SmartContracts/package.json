@@ -3,5 +3,11 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "hardhat": "^2.22.9"
+  },
+  "scripts": {
+    "test": "npx hardhat test --network localhost"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts-upgradeable": "^5.0.2"
   }
 }
