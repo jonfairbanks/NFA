@@ -1,9 +1,12 @@
+import fs from "fs";
+import { requireEnvsSet } from "../lib/utils";
 import { ethers } from "hardhat";
 import { createTestNFA } from "../lib/createTestContract";
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  process.env.TEST_NFA_ADDRESS = await createTestNFA(deployer);
+  const address = await createTestNFA(deployer);
+  fs.writeFileSync("test-nfa-addr.tmp", address);
 }
 
 main()

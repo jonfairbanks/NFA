@@ -1,11 +1,9 @@
 initSmartContracts:
-	make deployContracts
-	make createTestNFA
-
+	./scripts/initSmartContracts.sh
 runBlockchainLocal:
 	cd ./SmartContracts && ./runLocalTestNode.sh
 testContracts:
-	cd ./SmartContracts && npx hardhat test --network localhost
+	cd ./SmartContracts && ./runTests.sh
 deployContracts:
 	cd ./SmartContracts && npx hardhat run tasks/deploy.ts --network localhost
 createTestNFA:

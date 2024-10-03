@@ -1,4 +1,6 @@
+import fs from "fs"
 import { ethers } from "hardhat"
+import { requireEnvsSet } from "./utils"
 
 export async function deploy() {
     const [deployer] = await ethers.getSigners();
@@ -12,9 +14,12 @@ export async function deploy() {
     const NFAFactoryContract = await ethers.getContractFactory("NFAFactory");
     const nfaFactoryContract = await NFAFactoryContract.deploy();
 
-    process.env.NFA_FACTORY_CONTRACT_ADDRESS = await nfaFactoryContract.getAddress()
-    console.log("Contract deployed to:", process.env.NFA_FACTORY_CONTRACT_ADDRESS);
+    nfaFactoryContract.initialize(deployer.address);
 
+    const address = await nfaFactoryContract.getAddress()
+    console.log("Contract deployed to:", address);
+
+    fs.writeFileSync("nfa-factory-addr.tmp", address);
     // Deploy NFA contract
     const NFAContract = await ethers.getContractFactory("NFA");
     const nfaContract = await NFAContract.deploy();

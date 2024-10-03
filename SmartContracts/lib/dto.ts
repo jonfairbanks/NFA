@@ -1,17 +1,17 @@
-class AppInfo {
+export class AppInfo {
      routerRequired: boolean;
      paymentModel: string;
      versionInfo: VersionInfo;
 
-     constructor(routerRequired: boolean, paymentModel: string, downloadURIs: string[], codeHash: string, abiURIs: string[], abiHash: string[], versionId: string) {
+     constructor(routerRequired: boolean, paymentModel: string, versionInfo: VersionInfo) {
          this.routerRequired = routerRequired;
          this.paymentModel = paymentModel;
 
-         this.versionInfo = new VersionInfo(versionId, downloadURIs, codeHash, abiURIs, abiHash);
+         this.versionInfo = new VersionInfo(versionInfo.versionId, versionInfo.downloadURIs, versionInfo.codeHash, versionInfo.abiURIs, versionInfo.abiHash);
      }
 }
 
-class VersionInfo {
+export class VersionInfo {
      versionId: string;
      downloadURIs: string[];
      codeHash: string;
