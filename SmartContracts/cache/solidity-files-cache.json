@@ -38,8 +38,8 @@
       ]
     },
     "/Users/scottterry/Workspace/AgentGarage/SmartContracts/contracts/NFAFactory.sol": {
-      "lastModificationDate": 1726986022465,
-      "contentHash": "d6551fa8387b11be9c6df4adab70cf7e",
+      "lastModificationDate": 1727295117947,
+      "contentHash": "62690be9aa58283aca67c51240bcfe36",
       "sourceName": "contracts/NFAFactory.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -1025,8 +1025,8 @@
       "artifacts": []
     },
     "/Users/scottterry/Workspace/AgentGarage/SmartContracts/contracts/NFA.sol": {
-      "lastModificationDate": 1726985785918,
-      "contentHash": "223db0e6af18fb2abf24dc34b591779c",
+      "lastModificationDate": 1727295120904,
+      "contentHash": "eeb8bfa250c7696000fd4e0fd7893d32",
       "sourceName": "contracts/NFA.sol",
       "solcConfig": {
         "version": "0.8.24",

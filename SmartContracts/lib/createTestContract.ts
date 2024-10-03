@@ -33,12 +33,12 @@ export async function createTestNFA(deployer) {
   );
 
   const appInfo = new AppInfo(false, "free", versionInfo);
- 
+console.log("creating nfa contract: ", appInfo);
   const createNFAContractTx = await nfaFactoryContract.createNFAContract(
     "Test NFA",
     "TST",
     appInfo,
-    versionInfo,
+    
     deployer.address
   );
 

@@ -135,7 +135,7 @@ export interface NFAInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "initialize",
-    values: [string, string, AppInfoStruct, VersionInfoStruct, AddressLike]
+    values: [string, string, AppInfoStruct, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "isApprovedForAll",
@@ -527,7 +527,6 @@ export interface NFA extends BaseContract {
       name: string,
       symbol: string,
       appInfo: AppInfoStruct,
-      versionInfo: VersionInfoStruct,
       initialOwner: AddressLike
     ],
     [void],
@@ -681,7 +680,6 @@ export interface NFA extends BaseContract {
       name: string,
       symbol: string,
       appInfo: AppInfoStruct,
-      versionInfo: VersionInfoStruct,
       initialOwner: AddressLike
     ],
     [void],

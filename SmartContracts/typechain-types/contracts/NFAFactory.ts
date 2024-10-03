@@ -80,7 +80,7 @@ export interface NFAFactoryInterface extends Interface {
 
   encodeFunctionData(
     functionFragment: "createNFAContract",
-    values: [string, string, AppInfoStruct, VersionInfoStruct, AddressLike]
+    values: [string, string, AppInfoStruct, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "initialize",
@@ -197,7 +197,6 @@ export interface NFAFactory extends BaseContract {
       name: string,
       symbol: string,
       appInfo: AppInfoStruct,
-      versionInfo: VersionInfoStruct,
       initialOwner: AddressLike
     ],
     [string],
@@ -227,7 +226,6 @@ export interface NFAFactory extends BaseContract {
       name: string,
       symbol: string,
       appInfo: AppInfoStruct,
-      versionInfo: VersionInfoStruct,
       initialOwner: AddressLike
     ],
     [string],
