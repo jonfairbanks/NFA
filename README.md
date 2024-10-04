@@ -1,2 +1,2 @@
-# AgentGarage
-Open Source Agent Hosting powered by Morpheus AI 
+# Non Fungible Agents
+Open source agent toolset for building and maintaining non fungible agents. 
