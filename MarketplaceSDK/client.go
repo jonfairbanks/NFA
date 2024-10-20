@@ -1,3 +1,5 @@
+// client.go
+
 package marketplacesdk
 
 import (
@@ -63,9 +65,14 @@ func (c *ApiGatewayClient) getRequest(ctx context.Context, endpoint string, resu
 
 // Helper function to make POST requests
 func (c *ApiGatewayClient) postRequest(ctx context.Context, endpoint string, body interface{}, result interface{}) error {
-	reqBody, err := json.Marshal(body)
-	if err != nil {
-		return err
+	var reqBodyBytes []byte
+	var err error
+
+	if body != nil {
+		reqBodyBytes, err = json.Marshal(body)
+		if err != nil {
+			return err
+		}
 	}
 
 	u, err := url.Parse(c.BaseURL + endpoint)
@@ -73,7 +80,7 @@ func (c *ApiGatewayClient) postRequest(ctx context.Context, endpoint string, bod
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", u.String(), bytes.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", u.String(), bytes.NewReader(reqBodyBytes))
 	if err != nil {
 		return err
 	}
@@ -99,7 +106,7 @@ func (c *ApiGatewayClient) postRequest(ctx context.Context, endpoint string, bod
 
 // handleErrorResponse handles non-200 HTTP responses.
 func (c *ApiGatewayClient) handleErrorResponse(resp *http.Response) error {
-	var errResp map[string]interface{}
+	var errResp ErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&errResp)
 	if err != nil {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
@@ -107,133 +114,7 @@ func (c *ApiGatewayClient) handleErrorResponse(resp *http.Response) error {
 	return fmt.Errorf("unexpected status code: %d, response: %v", resp.StatusCode, errResp)
 }
 
-// DTOs (Data Transfer Objects)
-
-// WalletResponse represents a response containing the wallet address information.
-type WalletResponse struct {
-	Address string `json:"address"`
-}
-
-// SessionRequest represents a request to start a new session.
-type SessionRequest struct {
-	ModelID         string   `json:"modelId"`
-	SessionDuration *big.Int `json:"sessionDuration"`
-}
-
-// SessionStakeRequest represents a request to stake for a session.
-type SessionStakeRequest struct {
-	Approval    string   `json:"approval"`
-	ApprovalSig string   `json:"approvalSig"`
-	Stake       *big.Int `json:"stake"`
-}
-
-// CloseSessionRequest represents a request to close an ongoing session.
-type CloseSessionRequest struct {
-	SessionID string `json:"id"`
-}
-
-// WalletRequest represents a request to create or set up a wallet.
-type WalletRequest struct {
-	PrivateKey string `json:"privateKey"`
-}
-
-// ProdiaGenerationRequest represents a request to generate data from the Prodia model.
-type ProdiaGenerationRequest struct {
-	Model  string `json:"model"`
-	Prompt string `json:"prompt"`
-	ApiURL string `json:"apiUrl"`
-	ApiKey string `json:"apiKey"`
-}
-
-// OpenSessionWithDurationRequest represents a request to open a session with a specific duration.
-type OpenSessionWithDurationRequest struct {
-	SessionDuration *big.Int `json:"sessionDuration"`
-}
-
-// CreateBidRequest represents a request to create a bid with a model ID and price per second.
-type CreateBidRequest struct {
-	ModelID        string   `json:"modelID"`
-	PricePerSecond *big.Int `json:"pricePerSecond"`
-}
-
-// CreateProviderRequest represents a request to register a provider.
-type CreateProviderRequest struct {
-	Stake    *big.Int `json:"stake"`
-	Endpoint string   `json:"endpoint"`
-}
-
-// CreateModelRequest represents a request to create a model.
-type CreateModelRequest struct {
-	Name   string   `json:"name"`
-	IpfsID string   `json:"ipfsID"`
-	Stake  *big.Int `json:"stake"`
-	Fee    *big.Int `json:"fee"`
-	Tags   []string `json:"tags"`
-}
-
-// Model represents a model in the system.
-type Model struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Fee       *big.Int `json:"fee"`
-	Stake     *big.Int `json:"stake"`
-	Tags      []string `json:"tags"`
-	CreatedAt uint64   `json:"createdAt"`
-	IpfsCID   string   `json:"ipfsCID"`
-	Owner     string   `json:"owner"`
-	IsDeleted bool     `json:"isDeleted"`
-}
-
-// Session represents a session in the system.
-type Session struct {
-	SessionID string `json:"sessionID"`
-}
-
-// SessionListItem represents a session list item.
-type SessionListItem struct {
-	ID               string `json:"id"`
-	User             string `json:"user"`
-	Provider         string `json:"provider"`
-	ModelAgentID     string `json:"modelAgentId"`
-	OpenedAt         int64  `json:"openedAt"`
-	EndsAt           int64  `json:"endsAt"`
-	ClosedAt         int64  `json:"closedAt"`
-	CloseoutReceipt  string `json:"closeoutReceipt"`
-}
-
-// Bid represents a bid in the system.
-type Bid struct {
-	ID             string   `json:"id"`
-	Provider       string   `json:"provider"`
-	ModelAgentID   string   `json:"modelAgentId"`
-	PricePerSecond *big.Int `json:"pricePerSecond"`
-}
-
-// Provider represents a provider in the system.
-type Provider struct {
-	Address  string   `json:"address"`
-	Endpoint string   `json:"endpoint"`
-	Stake    *big.Int `json:"stake"`
-}
-
-// ModelStats represents the statistics of a model.
-type ModelStats struct {
-	TotalSessions uint64   `json:"totalSessions"`
-	TotalStake    *big.Int `json:"totalStake"`
-	// Add other fields as defined in the smart contract's ModelStats struct
-}
-
-// ErrorResponse represents an error response from the API.
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
-// TransactionResponse represents a response containing a transaction hash.
-type TransactionResponse struct {
-	TxHash string `json:"tx"`
-}
-
-// Implementing methods with updated DTOs and proper types
+// DTOs (Data Transfer Objects) have been moved to dto.go
 
 // GetProxyRouterConfig retrieves the proxy router configuration.
 func (c *ApiGatewayClient) GetProxyRouterConfig(ctx context.Context) (map[string]interface{}, error) {
@@ -400,9 +281,7 @@ func (c *ApiGatewayClient) CloseSession(ctx context.Context, sessionID string) (
 // GetAllowance retrieves MOR token allowance for a spender.
 func (c *ApiGatewayClient) GetAllowance(ctx context.Context, spender string) (*big.Int, error) {
 	endpoint := fmt.Sprintf("/blockchain/allowance?spender=%s", spender)
-	var result struct {
-		Allowance string `json:"allowance"`
-	}
+	var result AllowanceResponse
 	err := c.getRequest(ctx, endpoint, &result)
 	if err != nil {
 		return nil, err
