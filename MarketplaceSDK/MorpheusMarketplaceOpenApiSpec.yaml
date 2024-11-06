@@ -1,0 +1,1627 @@
+openapi: 3.0.3
+info:
+  title: Morpheus Marketplace API
+  description: API documentation for the Morpheus Marketplace.
+  version: '1.0.0'
+  contact:
+    email: dev-feedback@morpheus-marketplace.com
+servers:
+  - url: https://api.blockchainmarketplace.com
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /blockchain/send/eth:
+    post:
+      summary: Send ETH to a specified address
+      operationId: sendEth
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        description: Transaction details for sending ETH
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                to:
+                  $ref: '#/components/schemas/BlockchainId'
+                  description: Ethereum address to send ETH to
+                amount:
+                  type: string
+                  description: Amount of ETH to send
+                  example: '1.5'
+              required:
+                - to
+                - amount
+      responses:
+        '200':
+          description: ETH sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+              examples:
+                success:
+                  value:
+                    balance: '9.5'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/send/mor:
+    post:
+      summary: Send MOR to a specified address
+      operationId: sendMor
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        description: Transaction details for sending MOR
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                to:
+                  $ref: '#/components/schemas/BlockchainId'
+                  description: Ethereum address to send MOR to
+                amount:
+                  type: string
+                  description: Amount of MOR to send
+                  example: '250'
+              required:
+                - to
+                - amount
+      responses:
+        '200':
+          description: MOR sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+              examples:
+                success:
+                  value:
+                    balance: '750'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/models:
+    get:
+      summary: List all available models
+      operationId: listModels
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: A list of models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelResponse'
+              examples:
+                success:
+                  value:
+                    - id: 'model_12345'
+                      modelID: 'mod-67890'
+                      ipfsID: 'QmX...'
+                      name: 'Image Recognition Model'
+                      stake: '1000'
+                      fee: '0.01'
+                      tags:
+                        - 'machine learning'
+                        - 'image recognition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create a new model
+      operationId: createModel
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        description: Details of the model to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateModelRequest'
+      responses:
+        '201':
+          description: Model created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelResponse'
+              examples:
+                success:
+                  value:
+                    id: 'model_12345'
+                    modelID: 'mod-67890'
+                    ipfsID: 'QmX...'
+                    name: 'Image Recognition Model'
+                    stake: '1000'
+                    fee: '0.01'
+                    tags:
+                      - 'machine learning'
+                      - 'image recognition'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/models/{id}:
+    delete:
+      summary: Delete a model
+      operationId: deleteModel
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier of the model
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'model_12345'
+      responses:
+        '204':
+          description: Model deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/models/{id}/session:
+    post:
+      summary: Start a session for a model
+      operationId: startModelSession
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Model ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'model_12345'
+      requestBody:
+        description: Session details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionDuration:
+                  type: string
+                  description: Duration of the session
+                  example: '3600'
+              required:
+                - sessionDuration
+      responses:
+        '200':
+          description: Session started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+              examples:
+                success:
+                  value:
+                    id: 'session_abc123'
+                    sessionDuration: '3600'
+                    status: 'active'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/models/{id}/bids:
+    get:
+      summary: List bids for a model
+      operationId: listModelBids
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Model ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'model_12345'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            description: Maximum number of results to return
+            example: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            description: Number of results to skip
+            example: 0
+      responses:
+        '200':
+          description: A list of bids
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidListResponse'
+              examples:
+                success:
+                  value:
+                    bids:
+                      - id: 'bid_001'
+                        modelID: 'model_12345'
+                        pricePerSecond: '0.005'
+                      - id: 'bid_002'
+                        modelID: 'model_12345'
+                        pricePerSecond: '0.006'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/models/{id}/bids/active:
+    get:
+      summary: List active bids for a model
+      operationId: listActiveModelBids
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Model ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'model_12345'
+      responses:
+        '200':
+          description: A list of active bids
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidListResponse'
+              examples:
+                success:
+                  value:
+                    bids:
+                      - id: 'bid_003'
+                        modelID: 'model_12345'
+                        pricePerSecond: '0.007'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/models/{id}/bids/rated:
+    get:
+      summary: List rated bids for a model
+      operationId: listRatedModelBids
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Model ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'model_12345'
+      responses:
+        '200':
+          description: A list of rated bids
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidListResponse'
+              examples:
+                success:
+                  value:
+                    bids:
+                      - id: 'bid_004'
+                        modelID: 'model_12345'
+                        pricePerSecond: '0.008'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/models/{id}/stats:
+    get:
+      summary: Retrieve statistics for a model
+      operationId: getModelStats
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Model ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'model_12345'
+      responses:
+        '200':
+          description: Model statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelStatsResponse'
+              examples:
+                success:
+                  value:
+                    modelID: 'model_12345'
+                    stats:
+                      totalSessions: 150
+                      totalBids: 50
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/bids:
+    post:
+      summary: Create a new bid
+      operationId: createBid
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        description: Bid details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                modelID:
+                  type: string
+                  description: ID of the model to bid on
+                  example: 'model_12345'
+                pricePerSecond:
+                  type: string
+                  description: Bid price per second
+                  example: '0.005'
+              required:
+                - modelID
+                - pricePerSecond
+      responses:
+        '201':
+          description: Bid created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidResponse'
+              examples:
+                success:
+                  value:
+                    id: 'bid_005'
+                    modelID: 'model_12345'
+                    pricePerSecond: '0.005'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/bids/{id}:
+    get:
+      summary: Retrieve a bid
+      operationId: getBid
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Bid ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'bid_005'
+      responses:
+        '200':
+          description: Bid details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidResponse'
+              examples:
+                success:
+                  value:
+                    id: 'bid_005'
+                    modelID: 'model_12345'
+                    pricePerSecond: '0.005'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete a bid
+      operationId: deleteBid
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Bid ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'bid_005'
+      responses:
+        '204':
+          description: Bid deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/bids/{id}/session:
+    post:
+      summary: Start a session for a bid
+      operationId: startBidSession
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Bid ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'bid_005'
+      requestBody:
+        description: Session details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionDuration:
+                  type: string
+                  description: Duration of the session
+                  example: '3600'
+              required:
+                - sessionDuration
+      responses:
+        '200':
+          description: Session started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+              examples:
+                success:
+                  value:
+                    id: 'session_def456'
+                    sessionDuration: '3600'
+                    status: 'active'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/sessions:
+    post:
+      summary: Create a new session
+      operationId: createSession
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        description: Session creation details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                approval:
+                  type: string
+                  description: Approval identifier
+                  example: 'approval_abc123'
+                approvalSig:
+                  type: string
+                  description: Signature for the approval
+                  example: 'signature_xyz789'
+                stake:
+                  type: string
+                  description: Stake amount for the session
+                  example: '500'
+              required:
+                - approval
+                - approvalSig
+                - stake
+      responses:
+        '201':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+              examples:
+                success:
+                  value:
+                    id: 'session_ghi789'
+                    sessionDuration: '3600'
+                    status: 'active'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/sessions/{id}:
+    get:
+      summary: Retrieve a session
+      operationId: getSession
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Session ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'session_ghi789'
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+              examples:
+                success:
+                  value:
+                    id: 'session_ghi789'
+                    sessionDuration: '3600'
+                    status: 'active'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/sessions/{id}/close:
+    post:
+      summary: Close a session
+      operationId: closeSession
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Session ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'session_ghi789'
+      responses:
+        '200':
+          description: Session closed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/sessions/budget:
+    get:
+      summary: Get session budget
+      operationId: getSessionBudget
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Session budget details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetResponse'
+              examples:
+                success:
+                  value:
+                    budget: '1500'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/sessions/user:
+    get:
+      summary: List user sessions
+      operationId: listUserSessions
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: user
+          in: query
+          description: User identifier
+          required: true
+          schema:
+            $ref: '#/components/schemas/BlockchainId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            description: Maximum number of results to return
+            example: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            description: Number of results to skip
+            example: 0
+      responses:
+        '200':
+          description: A list of user sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponse'
+              examples:
+                success:
+                  value:
+                    sessions:
+                      - id: 'session_jkl012'
+                        sessionDuration: '3600'
+                        status: 'active'
+                      - id: 'session_mno345'
+                        sessionDuration: '1800'
+                        status: 'closed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/sessions/provider:
+    get:
+      summary: List provider sessions
+      operationId: listProviderSessions
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: provider
+          in: query
+          description: Provider identifier
+          required: true
+          schema:
+            $ref: '#/components/schemas/BlockchainId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            description: Maximum number of results to return
+            example: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            description: Number of results to skip
+            example: 0
+      responses:
+        '200':
+          description: A list of provider sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponse'
+              examples:
+                success:
+                  value:
+                    sessions:
+                      - id: 'session_pqr678'
+                        sessionDuration: '3600'
+                        status: 'active'
+                      - id: 'session_stu901'
+                        sessionDuration: '1800'
+                        status: 'closed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/providers:
+    get:
+      summary: List providers
+      operationId: listProviders
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: A list of providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProviderResponse'
+              examples:
+                success:
+                  value:
+                    - id: 'provider_001'
+                      endpoint: 'https://provider1.example.com'
+                      stake: '1000'
+                    - id: 'provider_002'
+                      endpoint: 'https://provider2.example.com'
+                      stake: '1500'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create a new provider
+      operationId: createProvider
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        description: Provider details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                endpoint:
+                  type: string
+                  description: Endpoint URL of the provider
+                  example: 'https://provider.example.com'
+                stake:
+                  type: string
+                  description: Amount to stake for the provider
+                  example: '2000'
+              required:
+                - endpoint
+                - stake
+      responses:
+        '201':
+          description: Provider created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderResponse'
+              examples:
+                success:
+                  value:
+                    id: 'provider_003'
+                    endpoint: 'https://provider3.example.com'
+                    stake: '2000'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/providers/{id}:
+    delete:
+      summary: Delete a provider
+      operationId: deleteProvider
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Provider ID
+          required: true
+          schema:
+            $ref: '#/components/schemas/BlockchainId'
+      responses:
+        '204':
+          description: Provider deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/providers/{id}/bids:
+    get:
+      summary: List bids for a provider
+      operationId: listProviderBids
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Provider ID
+          required: true
+          schema:
+            $ref: '#/components/schemas/BlockchainId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            description: Maximum number of results to return
+            example: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            description: Number of results to skip
+            example: 0
+      responses:
+        '200':
+          description: A list of bids
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidListResponse'
+              examples:
+                success:
+                  value:
+                    bids:
+                      - id: 'bid_006'
+                        modelID: 'model_67890'
+                        pricePerSecond: '0.009'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/providers/{id}/bids/active:
+    get:
+      summary: List active bids for a provider
+      operationId: listProviderActiveBids
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Provider ID
+          required: true
+          schema:
+            $ref: '#/components/schemas/BlockchainId'
+      responses:
+        '200':
+          description: A list of active bids
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidListResponse'
+              examples:
+                success:
+                  value:
+                    bids:
+                      - id: 'bid_007'
+                        modelID: 'model_67890'
+                        pricePerSecond: '0.010'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/balance:
+    get:
+      summary: Retrieve balance
+      operationId: getBalance
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Balance details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+              examples:
+                success:
+                  value:
+                    balance: '5000'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/allowance:
+    get:
+      summary: Retrieve allowance
+      operationId: getAllowance
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: spender
+          in: query
+          description: Spender Ethereum address
+          required: true
+          schema:
+            $ref: '#/components/schemas/BlockchainId'
+      responses:
+        '200':
+          description: Allowance details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllowanceResponse'
+              examples:
+                success:
+                  value:
+                    allowance: '1000'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/approve:
+    post:
+      summary: Approve allowance
+      operationId: approveAllowance
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        description: Approval details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                spender:
+                  $ref: '#/components/schemas/BlockchainId'
+                  description: Spender Ethereum address
+                amount:
+                  type: string
+                  description: Amount to approve
+                  example: '500'
+              required:
+                - spender
+                - amount
+      responses:
+        '200':
+          description: Allowance approved successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/latestBlock:
+    get:
+      summary: Get latest block number
+      operationId: getLatestBlock
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Latest block details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LatestBlockResponse'
+              examples:
+                success:
+                  value:
+                    blockNumber: '12345678'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/token/supply:
+    get:
+      summary: Get token supply
+      operationId: getTokenSupply
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Token supply details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenSupplyResponse'
+              examples:
+                success:
+                  value:
+                    supply: '1000000'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /blockchain/transactions:
+    get:
+      summary: List transactions
+      operationId: listTransactions
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: A list of transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+              examples:
+                success:
+                  value:
+                    transactions:
+                      - id: 'txn_001'
+                        amount: '50'
+                        type: 'deposit'
+                      - id: 'txn_002'
+                        amount: '25'
+                        type: 'withdrawal'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /proxy/sessions/initiate:
+    post:
+      summary: Initiate a proxy session
+      operationId: initiateProxySession
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        description: Session initiation details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                modelId:
+                  type: string
+                  description: Model ID to initiate session with
+                  example: 'model_12345'
+                sessionDuration:
+                  type: string
+                  description: Duration of the session
+                  example: '3600'
+              required:
+                - modelId
+                - sessionDuration
+      responses:
+        '200':
+          description: Proxy session initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+              examples:
+                success:
+                  value:
+                    id: 'session_xyz123'
+                    sessionDuration: '3600'
+                    status: 'active'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /proxy/sessions/{id}/providerClaimableBalance:
+    get:
+      summary: Get provider claimable balance
+      operationId: getProviderClaimableBalance
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Session ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'session_xyz123'
+      responses:
+        '200':
+          description: Claimable balance details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimableBalanceResponse'
+              examples:
+                success:
+                  value:
+                    balance: '250'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /proxy/sessions/{id}/providerClaim:
+    post:
+      summary: Claim provider balance
+      operationId: claimProviderBalance
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Session ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]+$'
+            example: 'session_xyz123'
+      requestBody:
+        description: Claim details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                claim:
+                  type: string
+                  description: Claim identifier
+                  example: 'claim_abc123'
+              required:
+                - claim
+      responses:
+        '200':
+          description: Provider balance claimed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimableBalanceResponse'
+              examples:
+                success:
+                  value:
+                    balance: '0'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key required to authenticate requests.
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            bad_request:
+              value:
+                code: 400
+                message: 'Invalid request parameters.'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            unauthorized:
+              value:
+                code: 401
+                message: 'Missing or invalid API key.'
+    NotFound:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            not_found:
+              value:
+                code: 404
+                message: 'The requested resource was not found.'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            server_error:
+              value:
+                code: 500
+                message: 'An unexpected error occurred.'
+
+  schemas:
+    BlockchainId:
+      type: string
+      pattern: '^[A-Fa-f0-9]{40}$'
+      example: '4592d8f8d7b001e72cb26a73e4fa1806a51ac79d'
+      description: Blockchain address in hexadecimal format without '0x' prefix
+
+    BalanceResponse:
+      type: object
+      properties:
+        balance:
+          type: string
+          description: Current balance after the transaction
+          example: '9.5'
+      required:
+        - balance
+
+    ModelResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the model
+          example: 'model_12345'
+        modelID:
+          type: string
+          description: Model ID provided by the user
+          example: 'mod-67890'
+        ipfsID:
+          type: string
+          description: IPFS ID where the model is stored
+          example: 'QmX...'
+        name:
+          type: string
+          description: Name of the model
+          example: 'Image Recognition Model'
+        stake:
+          type: string
+          description: Amount staked for the model
+          example: '1000'
+        fee:
+          type: string
+          description: Fee for using the model
+          example: '0.01'
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags associated with the model
+          example:
+            - 'machine learning'
+            - 'image recognition'
+      required:
+        - id
+        - modelID
+        - ipfsID
+        - name
+        - stake
+        - fee
+
+    CreateModelRequest:
+      type: object
+      properties:
+        modelID:
+          type: string
+          description: Model ID provided by the user
+          example: 'mod-67890'
+        ipfsID:
+          type: string
+          description: IPFS ID where the model is stored
+          example: 'QmX...'
+        name:
+          type: string
+          description: Name of the model
+          example: 'Image Recognition Model'
+        stake:
+          type: string
+          description: Amount to stake for the model
+          example: '1000'
+        fee:
+          type: string
+          description: Fee for using the model
+          example: '0.01'
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags associated with the model
+          example:
+            - 'machine learning'
+            - 'image recognition'
+      required:
+        - modelID
+        - ipfsID
+        - name
+        - stake
+        - fee
+
+    SessionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the session
+          example: 'session_abc123'
+        sessionDuration:
+          type: string
+          description: Duration of the session in seconds
+          example: '3600'
+        status:
+          type: string
+          description: Status of the session
+          example: 'active'
+      required:
+        - id
+        - sessionDuration
+        - status
+
+    BidListResponse:
+      type: object
+      properties:
+        bids:
+          type: array
+          items:
+            $ref: '#/components/schemas/BidResponse'
+          description: List of bids
+      required:
+        - bids
+
+    BidResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the bid
+          example: 'bid_005'
+        modelID:
+          type: string
+          description: ID of the model the bid is for
+          example: 'model_12345'
+        pricePerSecond:
+          type: string
+          description: Bid price per second
+          example: '0.005'
+      required:
+        - id
+        - modelID
+        - pricePerSecond
+
+    ModelStatsResponse:
+      type: object
+      properties:
+        modelID:
+          type: string
+          description: ID of the model
+          example: 'model_12345'
+        stats:
+          type: object
+          additionalProperties: true
+          description: Statistics related to the model
+          example:
+            totalSessions: 150
+            totalBids: 50
+      required:
+        - modelID
+        - stats
+
+    BudgetResponse:
+      type: object
+      properties:
+        budget:
+          type: string
+          description: Current session budget
+          example: '1500'
+      required:
+        - budget
+
+    SessionListResponse:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionResponse'
+          description: List of sessions
+      required:
+        - sessions
+
+    ProviderResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/BlockchainId'
+          description: Unique identifier of the provider
+        endpoint:
+          type: string
+          description: Endpoint URL of the provider
+          example: 'https://provider1.example.com'
+        stake:
+          type: string
+          description: Amount staked by the provider
+          example: '1000'
+      required:
+        - id
+        - endpoint
+        - stake
+
+    AllowanceResponse:
+      type: object
+      properties:
+        allowance:
+          type: string
+          description: Current allowance amount
+          example: '1000'
+      required:
+        - allowance
+
+    LatestBlockResponse:
+      type: object
+      properties:
+        blockNumber:
+          type: string
+          description: Latest block number on the blockchain
+          example: '12345678'
+      required:
+        - blockNumber
+
+    TokenSupplyResponse:
+      type: object
+      properties:
+        supply:
+          type: string
+          description: Total supply of the token
+          example: '1000000'
+      required:
+        - supply
+
+    TransactionListResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Transaction ID
+                example: 'txn_001'
+              amount:
+                type: string
+                description: Amount involved in the transaction
+                example: '50'
+              type:
+                type: string
+                description: Type of transaction
+                example: 'deposit'
+            required:
+              - id
+              - amount
+              - type
+          description: List of transactions
+      required:
+        - transactions
+
+    ClaimableBalanceResponse:
+      type: object
+      properties:
+        balance:
+          type: string
+          description: Amount claimable by the provider
+          example: '250'
+      required:
+        - balance
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Error message detailing what went wrong
+          example: 'Invalid request parameters.'
+      required:
+        - code
+        - message

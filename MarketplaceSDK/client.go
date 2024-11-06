@@ -59,6 +59,11 @@ func (c *ApiGatewayClient) getRequest(ctx context.Context, endpoint string, resu
 	if resp.StatusCode != http.StatusOK {
 		return c.handleErrorResponse(resp)
 	}
+	
+	// Check if the response body is empty
+	if resp.ContentLength == 0 {
+		return fmt.Errorf("empty response body")
+	}
 
 	return json.NewDecoder(resp.Body).Decode(result)
 }
@@ -113,8 +118,6 @@ func (c *ApiGatewayClient) handleErrorResponse(resp *http.Response) error {
 	}
 	return fmt.Errorf("unexpected status code: %d, response: %v", resp.StatusCode, errResp)
 }
-
-// DTOs (Data Transfer Objects) have been moved to dto.go
 
 // GetProxyRouterConfig retrieves the proxy router configuration.
 func (c *ApiGatewayClient) GetProxyRouterConfig(ctx context.Context) (map[string]interface{}, error) {
@@ -430,7 +433,10 @@ func (c *ApiGatewayClient) ModelMinStake(ctx context.Context) (*big.Int, error) 
 		return nil, err
 	}
 	minStake := new(big.Int)
-	minStake.SetString(result.MinStake, 10)
+	_, ok := minStake.SetString(result.MinStake, 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid minStake value: %s", result.MinStake)
+	}
 	return minStake, nil
 }
 
