@@ -13,5 +13,7 @@
 			"path": "../Morpheus-Lumerin-Node"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"makefile.configureOnOpen": false
+	}
 }

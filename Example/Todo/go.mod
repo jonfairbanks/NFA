@@ -1,6 +1,6 @@
 module github.com/MORpheus-Software/NFA
 
-go 1.22.3
+go 1.23
 
 require (
 	github.com/MORpheusSoftware/NFA/MarketplaceSDK v0.0.0-00010101000000-000000000000

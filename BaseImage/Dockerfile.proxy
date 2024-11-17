@@ -1,0 +1,36 @@
+# Dockerfile.proxy
+
+# Use the official Golang image as the build environment
+FROM golang:1.22.3-alpine AS builder
+
+# Install git and build essentials
+RUN apk add --no-cache git build-base
+
+WORKDIR /app
+
+# Copy the source code
+COPY . .
+
+# Build the binary for the specified architecture
+RUN CGO_ENABLED=0 ./scripts/build.sh
+
+# Final stage
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates dbus dbus-x11
+
+WORKDIR /app
+
+# Copy necessary files
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /app/bin/nfa-proxy /usr/bin/nfa-proxy
+
+# Create data directory
+RUN mkdir -p /app/data && \
+    chmod 755 /app/data
+
+# Expose the port
+EXPOSE 9000
+
+CMD ["nfa-proxy"]

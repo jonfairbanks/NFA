@@ -1,0 +1,35 @@
+name: nfa-proxy
+
+services:
+  marketplace:
+    build: 
+      context: ./morpheus-node/proxy-router/
+      dockerfile: Dockerfile
+    env_file:
+      - morpheus-node/proxy-router/.env
+    ports:
+      - 9000:9000
+      - 3333:3333
+  nfa-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+      args:
+        TARGETOS: linux
+        TARGETARCH: arm64
+    image: nfa-proxy:latest
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+      - MARKETPLACE_URL=http://marketplace:9000/v1/chat/completions
+      - SESSION_DURATION=1h
+      - WALLET_ADDRESS=${WALLET_ADDRESS:-0x0000000000000000000000000000000000000000}
+      - WALLET_PRIVATE_KEY=${WALLET_PRIVATE_KEY}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

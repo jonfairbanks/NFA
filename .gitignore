@@ -133,3 +133,6 @@ dist
 ./SmartContracts/nitro
 
 */.DS_Store
+
+#submodules
+BaseImage/morpheus-node
