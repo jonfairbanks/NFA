@@ -56,6 +56,7 @@ func init() {
 
 type MorpheusSession struct {
     SessionID string
+    ModelID   string    // Add ModelID field
     LastUsed  time.Time
 }
 
@@ -64,6 +65,15 @@ var (
     activeSession *MorpheusSession
     sessionMutex  sync.Mutex
 )
+
+// Add model ID validation
+func getModelID() string {
+    modelID := os.Getenv("MODEL_ID")
+    if modelID == "" {
+        log.Fatal("MODEL_ID environment variable must be set")
+    }
+    return modelID
+}
 
 // ensureSession makes sure we have an active session with Morpheus node
 func ensureSession() error {
@@ -74,32 +84,43 @@ func ensureSession() error {
         return nil
     }
 
+    walletAddress := os.Getenv("WALLET_ADDRESS")
+    if walletAddress == "" || walletAddress == "0x0000000000000000000000000000000000000000" {
+        return fmt.Errorf("invalid wallet address configuration")
+    }
+
+    modelID := getModelID()
+    
+    // Updated session request structure
     reqBody := map[string]interface{}{
-        "user": os.Getenv("WALLET_ADDRESS"),
+        "user": walletAddress,
+        "duration": "1h", // Use session duration from env or default to 1h
     }
 
     reqBytes, err := json.Marshal(reqBody)
     if err != nil {
         return fmt.Errorf("failed to marshal session request: %v", err)
     }
-
-    resp, err := http.Post("http://marketplace:9000/proxy/sessions/initiate", 
-        "application/json", bytes.NewBuffer(reqBytes))
+    
+    // Updated session endpoint with model ID
+    sessionURL := fmt.Sprintf("http://marketplace:9000/blockchain/models/%s/sessions", modelID)
+    resp, err := http.Post(sessionURL, "application/json", bytes.NewBuffer(reqBytes))
     if err != nil {
         return err
     }
     defer resp.Body.Close()
 
     var result struct {
-        SessionID string `json:"session_id"`
+        Id string `json:"id"`
     }
     if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
         return err
     }
 
     activeSession = &MorpheusSession{
-        SessionID: result.SessionID,
-        LastUsed: time.Now(),
+        SessionID: result.Id,
+        ModelID:   modelID,
+        LastUsed:  time.Now(),
     }
     return nil
 }
@@ -263,6 +284,15 @@ func respondWithError(w http.ResponseWriter, statusCode int, message string) {
 
 // StartProxyServer starts the proxy server
 func StartProxyServer() {
+    // Validate required environment variables
+    walletAddress := os.Getenv("WALLET_ADDRESS")
+    if walletAddress == "" || walletAddress == "0x0000000000000000000000000000000000000000" {
+        log.Fatal("WALLET_ADDRESS environment variable must be set to a valid address")
+    }
+    
+    modelID := getModelID() // Validate MODEL_ID exists
+    log.Printf("Starting proxy server with Model ID: %s", modelID)
+
     http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusOK)
         json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
