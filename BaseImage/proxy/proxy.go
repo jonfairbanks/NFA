@@ -90,11 +90,11 @@ func ensureSession() error {
     }
 
     modelID := getModelID()
-    
+    fmt.Printf("Establishing session for model %s\n", modelID)
     // Updated session request structure
     reqBody := map[string]interface{}{
-        "user": walletAddress,
-        "duration": "1h", // Use session duration from env or default to 1h
+        "sessionDuration": "3600", // Convert 1h to seconds
+        "failover": false, // Default to false for failover
     }
 
     reqBytes, err := json.Marshal(reqBody)
@@ -102,9 +102,30 @@ func ensureSession() error {
         return fmt.Errorf("failed to marshal session request: %v", err)
     }
     
+    // Do a health check before establishing session
+    healthResp, err := http.Get("http://marketplace:9000/healthcheck")
+    if err != nil || healthResp.StatusCode != http.StatusOK {
+        fmt.Printf("marketplace health check failed: %v", fmt.Errorf("%v", err))
+    }
+
+    // fmt.Printf("Health check status: %d\n", healthResp.StatusCode)
+    // // Output health response body for debugging
+    // bodyBytes, _ := io.ReadAll(healthResp.Body)
+    // healthResp.Body.Close()
+    // healthResp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+    // fmt.Printf("Health check response body: %s\n", string(bodyBytes))
+
     // Updated session endpoint with model ID
-    sessionURL := fmt.Sprintf("http://marketplace:9000/blockchain/models/%s/sessions", modelID)
+    sessionURL := fmt.Sprintf("http://marketplace:9000/blockchain/models/%s/session", modelID)
     resp, err := http.Post(sessionURL, "application/json", bytes.NewBuffer(reqBytes))
+
+    fmt.Printf("Session request to %s\n", sessionURL)
+    // fmt.Printf("Request body: %s\n", reqBytes)
+    // fmt.Printf("Response status: %d\n", resp.StatusCode)
+    // fmt.Printf("Response headers: %v\n", resp.Header)
+    // fmt.Printf("Response body: %v\n", resp.Body)
+    // fmt.Printf("error: %v\n", err)
+
     if err != nil {
         return err
     }
@@ -127,6 +148,17 @@ func ensureSession() error {
 
 // ProxyChatCompletion handles incoming chat completion requests
 func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
+    // Read and log the request body
+    bodyBytes, err := io.ReadAll(r.Body)
+    if err != nil {
+        respondWithError(w, http.StatusInternalServerError, "Failed to read request body")
+        return
+    }
+    // Restore the request body for further processing
+    r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+    
+    fmt.Printf("Received chat request body: %s\n", string(bodyBytes))
+
     // Ensure we have active session
     if err := ensureSession(); err != nil {
         respondWithError(w, http.StatusInternalServerError, "Failed to establish session")

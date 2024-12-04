@@ -1,7 +1,6 @@
 #!/bin/zsh
 
-set -e  # Exit on error
-set -u  # Error on undefined variables
+#set -u  # Error on undefined variables
 
 # Check dependencies
 check_dependencies() {
@@ -32,75 +31,6 @@ check_dependencies() {
     fi
 }
 
-# Check if a model name was provided
-if [ -z "$1" ]; then
-    echo "Usage: $0 <model-name>"
-    echo "Example: $0 llama"
-    exit 1
-fi
-
-check_dependencies
-
-MODEL_SEARCH="$1"
-
-# Try different ports in order
-PORTS=(9000 8082 8080 3000)
-MARKETPLACE_HOST="localhost"
-MARKETPLACE_URL=""
-
-echo "Starting marketplace service check..."
-
-# First try docker container name
-if curl -s -f "http://marketplace:9000/health" >/dev/null 2>&1; then
-    MARKETPLACE_URL="http://marketplace:9000"
-    echo "Found marketplace at container hostname"
-else
-    # Try localhost ports
-    for port in "${PORTS[@]}"; do
-        echo -n "Checking localhost:${port}... "
-        if curl -s -f "http://localhost:${port}/health" >/dev/null 2>&1; then
-            MARKETPLACE_URL="http://localhost:${port}"
-            echo "success!"
-            break
-        else
-            echo "failed"
-        fi
-    done
-fi
-
-if [ -z "$MARKETPLACE_URL" ]; then
-    echo "ERROR: No running marketplace found"
-    echo "Checking running services:"
-    ps aux | grep -i "morpheus\|proxy" | grep -v grep
-    echo ""
-    echo "Checking ports:"
-    for port in "${PORTS[@]}"; do
-        echo "Port ${port}:"
-        lsof -i :${port} || echo "  - Not in use"
-    done
-    exit 1
-fi
-
-echo "Found marketplace at: $MARKETPLACE_URL"
-echo "Testing models endpoint..."
-
-MODELS_RESPONSE=$(curl -s -f "${MARKETPLACE_URL}/blockchain/models")
-if [ $? -ne 0 ]; then
-    echo "Error accessing models endpoint"
-    curl -v "${MARKETPLACE_URL}/blockchain/models"
-    exit 1
-fi
-
-echo "Raw response:"
-echo "$MODELS_RESPONSE" | jq .
-
-# Stop here for debugging
-exit 0
-
-# Create temporary file for storing results
-TEMP_RESULTS=$(mktemp)
-trap 'rm -f $TEMP_RESULTS' EXIT
-
 # Function to calculate similarity score
 calculate_similarity() {
     local s1="$1"
@@ -113,100 +43,54 @@ print(f'{score:.4f}')
 "
 }
 
-echo "Fetching models from marketplace at ${MARKETPLACE_URL}..."
-
-# Enhanced connection testing function
-test_marketplace_connection() {
-    local url="$1"
-    echo "Testing connection to $url..."
-    
-    # Try with both HTTP and HTTPS
-    for protocol in "http" "https"; do
-        test_url="${protocol}://${url#*://}"
-        echo "Trying $test_url..."
-        
-        # Use -k to allow insecure connections, -f to fail silently
-        local response=$(curl -k -v -m 5 "$test_url/health" 2>&1)
-        local curl_exit=$?
-        
-        echo "Curl exit code: $curl_exit"
-        if [ "$DEBUG" = "1" ]; then
-            echo "Full response:"
-            echo "$response"
-        fi
-
-        if [ $curl_exit -eq 0 ]; then
-            MARKETPLACE_URL="$test_url"
-            echo "✓ Successfully connected to $test_url"
-            return 0
-        else
-            echo "✗ Failed to connect to $test_url (error $curl_exit)"
-            echo "Error details:"
-            echo "$response" | grep -E "^[*<>]" || true
-        fi
-    done
-    return 1
-}
-
-# Try multiple marketplace endpoints
-echo "Testing marketplace endpoints..."
-FOUND_ENDPOINT=0
-
-# Store original marketplace URL
-ORIGINAL_URL="$MARKETPLACE_URL"
-
-# Try original URL first
-if test_marketplace_connection "$ORIGINAL_URL"; then
-    FOUND_ENDPOINT=1
+# Check if a model name was provided - modified to make it optional
+if [ -z "$1" ]; then
+    echo "Listing all available models..."
+    LIST_ALL=true
 else
-    echo "Failed to connect to configured URL $ORIGINAL_URL"
-    echo "Trying alternative ports..."
-    
-    # Try alternative ports on localhost
-    for port in 9000 8082 8080 3000; do
-        if test_marketplace_connection "localhost:${port}"; then
-            FOUND_ENDPOINT=1
-            break
-        fi
-    done
+    LIST_ALL=false
+    MODEL_SEARCH="$1"
 fi
 
-if [ $FOUND_ENDPOINT -eq 0 ]; then
-    echo "ERROR: Could not connect to marketplace service"
-    echo "Please ensure the marketplace service is running"
-    echo "Tried:"
-    echo "- Original URL: $ORIGINAL_URL"
-    echo "- Alternative ports on localhost: 9000, 8082, 8080, 3000"
-    exit 1
-fi
+check_dependencies
 
-echo "Using marketplace at: $MARKETPLACE_URL"
+# Only check marketplace port - don't try others
+MARKETPLACE_PORT=9000
+echo "Starting marketplace service check..."
 
-# Now try the models endpoint specifically
-echo "Fetching models..."
-MODELS_RESPONSE=$(curl -k -s -S "${MARKETPLACE_URL}/blockchain/models" 2>&1)
+# Fix: Use the correct blockchain API endpoint for models
+MODELS_URL="http://localhost:${MARKETPLACE_PORT}/blockchain/models"
+echo "Testing marketplace API at $MODELS_URL"
+
+# Get the models using the new API format with pagination params
+MODELS_RESPONSE=$(curl -s \
+    -H "Accept: application/json" \
+    -H "Content-Type: application/json" \
+    "${MODELS_URL}?limit=100&order=desc" 2>/dev/null)
+
 CURL_EXIT=$?
 
 if [ $CURL_EXIT -ne 0 ]; then
-    echo "ERROR: Failed to fetch models (exit code $CURL_EXIT)"
-    echo "Response: $MODELS_RESPONSE"
+    echo "Error accessing models endpoint (exit code: $CURL_EXIT)"
+    echo "Failed URL: $MODELS_URL"
+    curl -v "$MODELS_URL"
     exit 1
 fi
 
-# Validate JSON response
-if ! echo "$MODELS_RESPONSE" | jq empty 2>/dev/null; then
-    echo "ERROR: Invalid JSON response"
+# Create temporary file for storing results
+TEMP_RESULTS=$(mktemp)
+trap 'rm -f $TEMP_RESULTS' EXIT
+
+# Parse and validate JSON response
+if ! echo "$MODELS_RESPONSE" | jq -e . >/dev/null 2>&1; then
+    echo "Error: Invalid JSON response"
     echo "Raw response:"
     echo "$MODELS_RESPONSE"
     exit 1
 fi
 
-# Count total models
-TOTAL_MODELS=$(echo "$MODELS_RESPONSE" | jq '.models | length')
-echo "Found $TOTAL_MODELS models, searching for matches..."
-
-# Process models and store results with scores
-echo "$MODELS_RESPONSE" | jq -r '.models[] | "\(.id)|\(.name)"' | while IFS="|" read -r id name; do
+# Process models with updated JSON structure
+echo "$MODELS_RESPONSE" | jq -r '.models[] | "\(.Id)|\(.Name)"' | while IFS="|" read -r id name; do
     if [ ! -z "$name" ]; then
         SIMILARITY=$(calculate_similarity "$MODEL_SEARCH" "$name")
         if (( $(echo "$SIMILARITY > 0.3" | bc -l) )); then
@@ -215,21 +99,35 @@ echo "$MODELS_RESPONSE" | jq -r '.models[] | "\(.id)|\(.name)"' | while IFS="|" 
     fi
 done
 
-# Check if we found any matches
-if [ ! -s "$TEMP_RESULTS" ]; then
-    echo "No matches found for '$MODEL_SEARCH'"
-    exit 0
+# Modified results display section
+if [ $LIST_ALL = true ]; then
+    echo -e "\nAvailable models:"
+    printf "\033[1m%-66s %-30s\033[0m\n" "MODEL ID" "NAME"
+    printf "%0.s-" {1..96}
+    printf "\n"
+    
+    # Display all models without similarity scoring
+    echo "$MODELS_RESPONSE" | jq -r '.models[] | "\(.Id)|\(.Name)"' | while IFS="|" read -r id name; do
+        printf "%-66s %-30s\n" "$id" "$name"
+    done
+else
+    # Display results with better formatting
+    if [ ! -s "$TEMP_RESULTS" ]; then
+        echo "No matches found for '$MODEL_SEARCH'"
+    else
+        echo -e "\nMatches found (sorted by similarity):"
+        printf "\033[1m%-15s %-66s %-30s\033[0m\n" "MATCH SCORE" "MODEL ID" "NAME"
+        printf "%0.s-" {1..111}
+        printf "\n"
+        
+        # Sort results by similarity score
+        sort -nr -t'|' -k1,1 "$TEMP_RESULTS" | while IFS="|" read -r score id name; do
+            printf "%-15.4f %-66s %-30s\n" "$score" "$id" "$name"
+        done
+        
+        echo -e "\nTo use a model, add to your .env file:"
+        echo "MODEL_ID=<model-id>"
+    fi
 fi
 
-# Sort and display results
-echo -e "\nMatches found (sorted by relevance):"
-echo "----------------------------------------"
-sort -r -t'|' -k1,1 "$TEMP_RESULTS" | while IFS="|" read -r score id name; do
-    printf "Match Score: %.2f\n" "$score"
-    printf "Model ID: %s\n" "$id"
-    printf "Name: %s\n" "$name"
-    echo "----------------------------------------"
-done
-
-echo -e "\nTo use a model, set the MODEL_ID environment variable:"
-echo "export MODEL_ID=<model-id>"
+exit 0
