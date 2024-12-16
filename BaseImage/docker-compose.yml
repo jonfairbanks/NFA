@@ -2,14 +2,59 @@ name: nfa-proxy
 
 services:
   marketplace:
-    build: 
-      context: ./morpheus-node/proxy-router/
+    build:
+      context: ./morpheus-node/proxy-router
       dockerfile: Dockerfile
+      args:
+        COMMIT: ${COMMIT:-latest}
+    image: proxy-router:${VERSION:-latest}
     env_file:
       - morpheus-node/proxy-router/.env
+    environment:
+      - WEB_ADDRESS=0.0.0.0:9000
+      - WEB_PUBLIC_URL=http://localhost:9000
     ports:
-      - 9000:9000
-      - 3333:3333
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:3333:3333"
+  # provider:
+  #   build:
+  #     context: ./morpheus-node/proxy-router/
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     # Provider-specific wallet configuration
+  #     WALLET_PRIVATE_KEY: "${PROVIDER_WALLET_PRIVATE_KEY}"
+  #     # Contract addresses
+  #     DIAMOND_CONTRACT_ADDRESS: "0xb8C55cD613af947E73E262F0d3C54b7211Af16CF"
+  #     MOR_TOKEN_ADDRESS: "0x34a285a1b1c166420df5b6630132542923b5b27e"
+  #     # Network configuration
+  #     ETH_NODE_CHAIN_ID: 421614
+  #     ETH_NODE_ADDRESS: "https://arbitrum-sepolia.blockpi.network/v1/rpc/public"
+  #     ETH_NODE_USE_SUBSCRIPTIONS: false
+  #     ETH_NODE_LEGACY_TX: false
+  #     # Web configuration
+  #     WEB_ADDRESS: "0.0.0.0:3334"  # Provider needs to listen on 3334
+  #     WEB_PUBLIC_URL: "http://localhost:3334"  # Public URL for provider access
+  #     OPENAI_BASE_URL: "http://host.docker.internal:11434/v1"
+  #     # Storage configuration
+  #     PROXY_STORE_CHAT_CONTEXT: true
+  #     PROXY_STORAGE_PATH: "/app/data/"
+  #     # Environment
+  #     ENVIRONMENT: "development"
+  #     LOG_COLOR: true
+  #   ports:
+  #     - "127.0.0.1:3334:3334"  # Main provider port
+  #   volumes:
+  #     - provider-data:/app/data
+  #     - ./morpheus-node/proxy-router/models-config.json:/app/models-config.json
+  #     - ./morpheus-node/proxy-router/rating-config.json:/app/rating-config.json
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   init: true
+  #   security_opt:
+  #     - seccomp:unconfined
+  #   cap_add:
+  #     - SYS_ADMIN
+  
   nfa-proxy:
     build:
       context: .
@@ -28,9 +73,13 @@ services:
       - WALLET_PRIVATE_KEY=${WALLET_PRIVATE_KEY}
       - MODEL_ID=${MODEL_ID:-0x0000000000000000000000000000000000000000}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+volumes:
+  provider-data:
+    driver: local

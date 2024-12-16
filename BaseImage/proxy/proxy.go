@@ -80,21 +80,21 @@ func ensureSession() error {
     sessionMutex.Lock()
     defer sessionMutex.Unlock()
 
+    // Debug the session state
+    log.Printf("Checking session state - Current session: %+v", activeSession)
+
     if activeSession != nil && time.Since(activeSession.LastUsed) < 30*time.Minute {
+        log.Printf("Using existing session: %s", activeSession.SessionID)
         return nil
     }
 
-    walletAddress := os.Getenv("WALLET_ADDRESS")
-    if walletAddress == "" || walletAddress == "0x0000000000000000000000000000000000000000" {
-        return fmt.Errorf("invalid wallet address configuration")
-    }
-
     modelID := getModelID()
-    fmt.Printf("Establishing session for model %s\n", modelID)
-    // Updated session request structure
+    log.Printf("Establishing new session for model %s", modelID)
+
+    // Updated session request structure with explicit duration value
     reqBody := map[string]interface{}{
-        "sessionDuration": "3600", // Convert 1h to seconds
-        "failover": false, // Default to false for failover
+        "sessionDuration": 3600, // Send as number, not string
+        "failover": false,
     }
 
     reqBytes, err := json.Marshal(reqBody)
@@ -118,31 +118,36 @@ func ensureSession() error {
     // Updated session endpoint with model ID
     sessionURL := fmt.Sprintf("http://marketplace:9000/blockchain/models/%s/session", modelID)
     resp, err := http.Post(sessionURL, "application/json", bytes.NewBuffer(reqBytes))
-
-    fmt.Printf("Session request to %s\n", sessionURL)
-    // fmt.Printf("Request body: %s\n", reqBytes)
-    // fmt.Printf("Response status: %d\n", resp.StatusCode)
-    // fmt.Printf("Response headers: %v\n", resp.Header)
-    // fmt.Printf("Response body: %v\n", resp.Body)
-    // fmt.Printf("error: %v\n", err)
-
     if err != nil {
-        return err
+        log.Printf("Session establishment failed: %v", err)
+        return fmt.Errorf("failed to establish session: %v", err)
     }
-    defer resp.Body.Close()
+    
+    // Read and log response body for debugging
+    bodyBytes, _ := io.ReadAll(resp.Body)
+    resp.Body.Close()
+    resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+    log.Printf("Session response body: %s", string(bodyBytes))
 
     var result struct {
-        Id string `json:"id"`
+        Id string `json:"sessionID"`
     }
     if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
         return err
     }
+
+    log.Printf("Session response: %+v", result)
 
     activeSession = &MorpheusSession{
         SessionID: result.Id,
         ModelID:   modelID,
         LastUsed:  time.Now(),
     }
+
+    if activeSession == nil || activeSession.SessionID == "" {
+        return fmt.Errorf("failed to get valid session ID from response")
+    }
+    log.Printf("Successfully established new session: %s", activeSession.SessionID)
     return nil
 }
 
@@ -170,6 +175,14 @@ func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
         respondWithError(w, http.StatusBadRequest, "Invalid request body")
         return
     }
+
+    // Always set MODEL_ID from environment
+    modelID := os.Getenv("MODEL_ID")
+    if modelID == "" {
+        respondWithError(w, http.StatusInternalServerError, "MODEL_ID environment variable not set")
+        return
+    }
+    requestBody["model"] = modelID
 
     // Add session_id to forwarded request headers
     r.Header.Set("session_id", activeSession.SessionID)
@@ -214,18 +227,25 @@ func forwardRequest(requestBody map[string]interface{}) (*http.Response, error) 
     }
 
     req.Header.Set("Content-Type", "application/json")
-    if activeSession != nil {
-        req.Header.Set("session_id", activeSession.SessionID)
+    
+ log.Printf("active session: %+v", activeSession)
+    if activeSession != nil && activeSession.SessionID != "" {
+        // Add session ID as both header variations to ensure compatibility
+        req.Header.Set("Session_id", activeSession.SessionID)
+        log.Printf("Setting session ID in request headers: %s", activeSession.SessionID)
+    } else {
+        log.Printf("Warning: No active session ID available")
+        return nil, fmt.Errorf("no active session")
     }
 
-    // Add debug logging
+    // Add debug logging for all headers
     log.Printf("Request headers: %v", req.Header)
     log.Printf("Request body: %s", reqBodyBytes)
 
     client = &http.Client{
         Timeout: 30 * time.Second,
     }
-    
+
     // Add detailed error logging
     resp, err := client.Do(req)
     if err != nil {
