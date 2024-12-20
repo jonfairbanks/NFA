@@ -1,0 +1,51 @@
+name: nfa-proxy
+
+services:
+  marketplace:
+    image: srt0422/morpheus-marketplace:beta-1
+    environment:
+      - WEB_ADDRESS=0.0.0.0:9000
+      - WEB_PUBLIC_URL=http://localhost:9000
+      - DIAMOND_CONTRACT_ADDRESS=0xb8C55cD613af947E73E262F0d3C54b7211Af16CF
+      - MOR_TOKEN_ADDRESS=0x34a285a1b1c166420df5b6630132542923b5b27e
+      - EXPLORER_API_URL=https://api-sepolia.arbiscan.io/api
+      - ETH_NODE_CHAIN_ID=421614
+      - ETH_NODE_USE_SUBSCRIPTIONS=false
+      - ETH_NODE_ADDRESS=https://sepolia-rollup.arbitrum.io/rpc
+      - ENVIRONMENT=development
+      - ETH_NODE_LEGACY_TX=false
+      - OPENAI_BASE_URL=http://host.docker.internal:11434/v1
+      - OPENAI_KEY=not-needed
+      - PROXY_STORE_CHAT_CONTEXT=true
+      - PROXY_STORAGE_PATH=/app/data/
+      - LOG_COLOR=true
+      - AI_ENGINE_OPENAI_BASE_URL=http://host.docker.internal:11434/v1
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:3333:3333"
+
+  nfa-proxy:
+    image: srt0422/openai-morpheus-proxy:beta-1
+    platform: linux/arm64
+    env_file:
+      - ../.env
+    environment:
+      - PORT=8080
+      - MARKETPLACE_URL=http://marketplace:9000/v1/chat/completions
+      - SESSION_DURATION=1h
+      - WALLET_ADDRESS=${WALLET_ADDRESS:-0x0000000000000000000000000000000000000000}
+      - WALLET_PRIVATE_KEY=${WALLET_PRIVATE_KEY}
+      - MODEL_ID=${MODEL_ID:-0x0000000000000000000000000000000000000000}
+      - DEFAULT_PORT=8080
+      - MARKETPLACE_PORT=9000
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  provider-data:
+    driver: local
