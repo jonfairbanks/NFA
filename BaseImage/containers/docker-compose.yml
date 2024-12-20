@@ -2,23 +2,15 @@ name: nfa-proxy
 
 services:
   marketplace:
-    build:
-      context: ./morpheus-node/proxy-router
-      dockerfile: Dockerfile
-      args:
-        COMMIT: ${COMMIT:-latest}
-    image: proxy-router:${VERSION:-latest}
+    image: srt0422/morpheus-marketplace:beta-1
     environment:
       - WEB_ADDRESS=0.0.0.0:9000
       - WEB_PUBLIC_URL=http://localhost:9000
-      # - WALLET_PRIVATE_KEY=UNCOMMENT TO CONFIGURE YOUR WALLET 
-      - WALLET_PRIVATE_KEY=6f3453bc036158833281b9e0204975bad0f2a4407c4ab32132bb0f9e6e692cbb
       - DIAMOND_CONTRACT_ADDRESS=0xb8C55cD613af947E73E262F0d3C54b7211Af16CF
       - MOR_TOKEN_ADDRESS=0x34a285a1b1c166420df5b6630132542923b5b27e
       - EXPLORER_API_URL=https://api-sepolia.arbiscan.io/api
       - ETH_NODE_CHAIN_ID=421614
       - ETH_NODE_USE_SUBSCRIPTIONS=false
-      - ETH_NODE_ADDRESS=https://arbitrum-sepolia.blockpi.network/v1/rpc/public
       - ETH_NODE_ADDRESS=https://sepolia-rollup.arbitrum.io/rpc
       - ENVIRONMENT=development
       - ETH_NODE_LEGACY_TX=false
@@ -27,24 +19,16 @@ services:
       - PROXY_STORE_CHAT_CONTEXT=true
       - PROXY_STORAGE_PATH=/app/data/
       - LOG_COLOR=true
-      - WEB_ADDRESS=0.0.0.0:9000
-      - WEB_PUBLIC_URL=http://localhost:9000
       - AI_ENGINE_OPENAI_BASE_URL=http://host.docker.internal:11434/v1
     ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:3333:3333"
+
   nfa-proxy:
-    build:
-      context: .
-      dockerfile: Dockerfile.proxy
-      args:
-        TARGETOS: linux
-        TARGETARCH: arm64  # Changed from amd64 to arm64
-      platforms:
-        - linux/arm64      # Changed from linux/amd64 to linux/arm64
-    image: nfa-proxy:latest
+    image: srt0422/openai-morpheus-proxy:beta-1
+    platform: linux/arm64
     env_file:
-      - .env
+      - ../.env
     environment:
       - PORT=8080
       - MARKETPLACE_URL=http://marketplace:9000/v1/chat/completions

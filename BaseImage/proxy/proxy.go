@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"sort"
+
 	"github.com/sony/gobreaker"
 )
 
@@ -39,6 +41,8 @@ var SessionManagerInstance = &SessionManager{}
 var (
     defaultTimeout = 30 * time.Second
     circuitBreaker *gobreaker.CircuitBreaker
+    modelCache     = make(map[string]string) // map[modelHandle]modelId
+    modelCacheMux  sync.RWMutex
 )
 
 func init() {
@@ -54,66 +58,47 @@ func init() {
     })
 }
 
+// Update MorpheusSession struct to include ModelID
 type MorpheusSession struct {
     SessionID string
-    ModelID   string    // Add ModelID field
+    ModelID   string
     LastUsed  time.Time
 }
 
-// Add session management
+// Update activeSessions to manage sessions per model ID
 var (
-    activeSession *MorpheusSession
-    sessionMutex  sync.Mutex
+    activeSessions = make(map[string]*MorpheusSession)
+    sessionMutex   sync.Mutex
 )
 
-// Add model ID validation
-func getModelID() string {
-    modelID := os.Getenv("MODEL_ID")
-    if modelID == "" {
-        log.Fatal("MODEL_ID environment variable must be set")
-    }
-    return modelID
-}
+// Remove getModelID function as modelID comes from the request
 
-// ensureSession makes sure we have an active session with Morpheus node
-func ensureSession() error {
+// Modify ensureSession to accept modelID as a parameter
+func ensureSession(modelID string) error {
     sessionMutex.Lock()
     defer sessionMutex.Unlock()
 
     // Debug the session state
-    log.Printf("Checking session state - Current session: %+v", activeSession)
+    log.Printf("Checking session state for model %s", modelID)
 
-    if activeSession != nil && time.Since(activeSession.LastUsed) < 30*time.Minute {
-        log.Printf("Using existing session: %s", activeSession.SessionID)
+    session, exists := activeSessions[modelID]
+    if exists && time.Since(session.LastUsed) < 30*time.Minute {
+        log.Printf("Using existing session for model %s: %s", modelID, session.SessionID)
+        session.LastUsed = time.Now()
         return nil
     }
 
-    modelID := getModelID()
     log.Printf("Establishing new session for model %s", modelID)
 
-    // Updated session request structure with explicit duration value
     reqBody := map[string]interface{}{
         "sessionDuration": 3600, // Send as number, not string
-        "failover": false,
+        "failover":        false,
     }
 
     reqBytes, err := json.Marshal(reqBody)
     if err != nil {
         return fmt.Errorf("failed to marshal session request: %v", err)
     }
-    
-    // Do a health check before establishing session
-    healthResp, err := http.Get("http://marketplace:9000/healthcheck")
-    if err != nil || healthResp.StatusCode != http.StatusOK {
-        fmt.Printf("marketplace health check failed: %v", fmt.Errorf("%v", err))
-    }
-
-    // fmt.Printf("Health check status: %d\n", healthResp.StatusCode)
-    // // Output health response body for debugging
-    // bodyBytes, _ := io.ReadAll(healthResp.Body)
-    // healthResp.Body.Close()
-    // healthResp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-    // fmt.Printf("Health check response body: %s\n", string(bodyBytes))
 
     // Updated session endpoint with model ID
     sessionURL := fmt.Sprintf("http://marketplace:9000/blockchain/models/%s/session", modelID)
@@ -122,36 +107,228 @@ func ensureSession() error {
         log.Printf("Session establishment failed: %v", err)
         return fmt.Errorf("failed to establish session: %v", err)
     }
-    
-    // Read and log response body for debugging
-    bodyBytes, _ := io.ReadAll(resp.Body)
-    resp.Body.Close()
-    resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-    log.Printf("Session response body: %s", string(bodyBytes))
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        bodyBytes, _ := io.ReadAll(resp.Body)
+        log.Printf("Session response body: %s", string(bodyBytes))
+        return fmt.Errorf("failed to establish session: %s", string(bodyBytes))
+    }
 
     var result struct {
         Id string `json:"sessionID"`
     }
     if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return err
+        return fmt.Errorf("failed to decode session response: %v", err)
     }
 
     log.Printf("Session response: %+v", result)
 
-    activeSession = &MorpheusSession{
+    if result.Id == "" {
+        return fmt.Errorf("failed to get valid session ID from response")
+    }
+
+    // Update the session for the model ID
+    activeSessions[modelID] = &MorpheusSession{
         SessionID: result.Id,
         ModelID:   modelID,
         LastUsed:  time.Now(),
     }
 
-    if activeSession == nil || activeSession.SessionID == "" {
-        return fmt.Errorf("failed to get valid session ID from response")
-    }
-    log.Printf("Successfully established new session: %s", activeSession.SessionID)
+    log.Printf("Successfully established new session for model %s: %s", modelID, result.Id)
     return nil
 }
 
-// ProxyChatCompletion handles incoming chat completion requests
+// Add model handle mapping
+var modelHandleToID = map[string]string{
+    "LMR-Collective Cognition Mistral 7B": os.Getenv("MODEL_ID"), // default model
+    "gpt-3.5-turbo": os.Getenv("MODEL_ID"), // maps to same model
+    "LMR-Hermes-2-Theta-Llama-3-8B": os.Getenv("MODEL_ID"), // Add new model handle
+}
+
+// ModelInfo represents the model information from the marketplace
+type ModelInfo struct {
+    Id   string `json:"Id"`
+    Name string `json:"Name"`
+}
+
+// ModelSearchResponse represents the marketplace API response
+type ModelSearchResponse struct {
+    Models []ModelInfo `json:"models"`
+}
+
+// calculateSimilarity returns a similarity score between two strings
+func calculateSimilarity(s1, s2 string) float64 {
+    // Convert to lowercase for case-insensitive comparison
+    s1 = strings.ToLower(s1)
+    s2 = strings.ToLower(s2)
+
+    // Simple Levenshtein-based similarity
+    maxLen := len(s1)
+    if len(s2) > maxLen {
+        maxLen = len(s2)
+    }
+    if maxLen == 0 {
+        return 1.0
+    }
+
+    distance := levenshteinDistance(s1, s2)
+    return 1.0 - float64(distance)/float64(maxLen)
+}
+
+// levenshteinDistance calculates the Levenshtein distance between two strings
+func levenshteinDistance(s1, s2 string) int {
+    if len(s1) == 0 {
+        return len(s2)
+    }
+    if len(s2) == 0 {
+        return len(s1)
+    }
+
+    matrix := make([][]int, len(s1)+1)
+    for i := range matrix {
+        matrix[i] = make([]int, len(s2)+1)
+        matrix[i][0] = i
+    }
+    for j := range matrix[0] {
+        matrix[0][j] = j
+    }
+
+    for i := 1; i <= len(s1); i++ {
+        for j := 1; i <= len(s2); j++ {
+            cost := 1
+            if s1[i-1] == s2[j-1] {
+                cost = 0
+            }
+            matrix[i][j] = min(
+                matrix[i-1][j]+1,
+                matrix[i][j-1]+1,
+                matrix[i-1][j-1]+cost,
+            )
+        }
+    }
+
+    return matrix[len(s1)][len(s2)]
+}
+
+func min(nums ...int) int {
+    result := nums[0]
+    for _, num := range nums[1:] {
+        if num < result {
+            result = num
+        }
+    }
+    return result
+}
+
+// findModelID searches for a model ID by exact or partial match
+func findModelID(modelHandle string) (string, error) {
+    // Check cache first
+    modelCacheMux.RLock()
+    if modelID, exists := modelCache[modelHandle]; exists {
+        modelCacheMux.RUnlock()
+        return modelID, nil
+    }
+    modelCacheMux.RUnlock()
+
+    // Query the marketplace API
+    resp, err := http.Get("http://marketplace:9000/blockchain/models?limit=100&order=desc")
+    if err != nil {
+        return "", fmt.Errorf("failed to fetch models: %v", err)
+    }
+    defer resp.Body.Close()
+
+    var searchResp ModelSearchResponse
+    if err := json.NewDecoder(resp.Body).Decode(&searchResp); err != nil {
+        return "", fmt.Errorf("failed to decode models response: %v", err)
+    }
+
+    // Normalize search handle
+    searchHandle := strings.ToLower(modelHandle)
+    log.Printf("Searching for model matching: '%s'", modelHandle)
+
+    // Try finding a model that contains the search term
+    var matches []struct {
+        id    string
+        name  string
+        score float64
+    }
+
+    for _, model := range searchResp.Models {
+        modelName := strings.ToLower(model.Name)
+        
+        // Check if model name contains search term or vice versa
+        if strings.Contains(modelName, searchHandle) || strings.Contains(searchHandle, modelName) {
+            score := calculateSimilarity(searchHandle, modelName)
+            matches = append(matches, struct {
+                id    string
+                name  string
+                score float64
+            }{
+                id:    model.Id,
+                name:  model.Name,
+                score: score,
+            })
+            log.Printf("Found matching model: '%s' with score %.2f", model.Name, score)
+        }
+    }
+
+    // If we found matches, use the best one
+    if len(matches) > 0 {
+        // Sort matches by score (highest first)
+        sort.Slice(matches, func(i, j int) bool {
+            return matches[i].score > matches[j].score
+        })
+
+        bestMatch := matches[0]
+        log.Printf("Selected best match: '%s' with score %.2f", bestMatch.name, bestMatch.score)
+
+        // Cache the result
+        modelCacheMux.Lock()
+        modelCache[modelHandle] = bestMatch.id
+        modelCacheMux.Unlock()
+
+        return bestMatch.id, nil
+    }
+
+    // If no partial matches found, try fuzzy search as a last resort
+    var bestMatch string
+    var bestScore float64
+    const similarityThreshold = 0.3
+
+    for _, model := range searchResp.Models {
+        score := calculateSimilarity(modelHandle, model.Name)
+        if score > similarityThreshold && score > bestScore {
+            bestScore = score
+            bestMatch = model.Id
+            log.Printf("Found fuzzy match: '%s' with score %.2f", model.Name, score)
+        }
+    }
+
+    if bestMatch == "" {
+        return "", fmt.Errorf("no matching model found for: %s", modelHandle)
+    }
+
+    // Cache the fuzzy match result
+    modelCacheMux.Lock()
+    modelCache[modelHandle] = bestMatch
+    modelCacheMux.Unlock()
+
+    return bestMatch, nil
+}
+
+// validateModelHandle checks if the model handle is valid and returns the corresponding ID
+func validateModelHandle(handle string) (string, error) {
+    // First check if it's in our static mapping
+    if id, exists := modelHandleToID[handle]; exists {
+        return id, nil
+    }
+
+    // If not in static mapping, try to find it dynamically
+    return findModelID(handle)
+}
+
+// Update ProxyChatCompletion function
 func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
     // Read and log the request body
     bodyBytes, err := io.ReadAll(r.Body)
@@ -161,14 +338,8 @@ func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
     }
     // Restore the request body for further processing
     r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-    
-    fmt.Printf("Received chat request body: %s\n", string(bodyBytes))
 
-    // Ensure we have active session
-    if err := ensureSession(); err != nil {
-        respondWithError(w, http.StatusInternalServerError, "Failed to establish session")
-        return
-    }
+    fmt.Printf("Received chat request body: %s\n", string(bodyBytes))
 
     var requestBody map[string]interface{}
     if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
@@ -176,31 +347,46 @@ func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Always set MODEL_ID from environment
-    modelID := os.Getenv("MODEL_ID")
-    if modelID == "" {
-        respondWithError(w, http.StatusInternalServerError, "MODEL_ID environment variable not set")
+    // Extract and validate model handle
+    modelHandle, ok := requestBody["model"].(string)
+    if !ok {
+        respondWithError(w, http.StatusBadRequest, "model field is required")
         return
     }
+
+    // Convert model handle to ID
+    modelID, err := validateModelHandle(modelHandle)
+    if err != nil {
+        respondWithError(w, http.StatusBadRequest, err.Error())
+        return
+    }
+
+    // Ensure we have an active session for this model ID
+    if err := ensureSession(modelID); err != nil {
+        respondWithError(w, http.StatusInternalServerError, "Failed to establish session")
+        return
+    }
+
+    // Update request with actual model ID
     requestBody["model"] = modelID
 
     // Add session_id to forwarded request headers
-    r.Header.Set("session_id", activeSession.SessionID)
-    
+    r.Header.Set("session_id", activeSessions[modelID].SessionID)
+
     stream, ok := requestBody["stream"].(bool)
-    if (!ok) {
+    if !ok {
         stream = false // Default to non-streaming if not specified
     }
 
     if stream {
-        handleStreamingRequest(w, requestBody)
+        handleStreamingRequest(w, requestBody, modelID)
     } else {
-        handleNonStreamingRequest(w, requestBody)
+        handleNonStreamingRequest(w, requestBody, modelID)
     }
 }
 
-// forwardRequest forwards the request to the marketplace node with necessary headers
-func forwardRequest(requestBody map[string]interface{}) (*http.Response, error) {
+// Modify forwardRequest to accept modelID and use the correct session
+func forwardRequest(requestBody map[string]interface{}, modelID string) (*http.Response, error) {
     marketplaceURL := os.Getenv("MARKETPLACE_URL")
     if marketplaceURL == "" {
         return nil, fmt.Errorf("MARKETPLACE_URL environment variable is not set")
@@ -208,13 +394,6 @@ func forwardRequest(requestBody map[string]interface{}) (*http.Response, error) 
 
     // Add debug logging for URL
     log.Printf("Attempting to forward request to: %s", marketplaceURL)
-
-    // Test marketplace connection
-    client := &http.Client{Timeout: 5 * time.Second}
-    _, err := client.Get(strings.TrimSuffix(marketplaceURL, "/v1/chat/completions"))
-    if err != nil {
-        return nil, fmt.Errorf("marketplace is not accessible: %v", err)
-    }
 
     reqBodyBytes, err := json.Marshal(requestBody)
     if err != nil {
@@ -227,26 +406,25 @@ func forwardRequest(requestBody map[string]interface{}) (*http.Response, error) 
     }
 
     req.Header.Set("Content-Type", "application/json")
-    
- log.Printf("active session: %+v", activeSession)
-    if activeSession != nil && activeSession.SessionID != "" {
-        // Add session ID as both header variations to ensure compatibility
-        req.Header.Set("Session_id", activeSession.SessionID)
-        log.Printf("Setting session ID in request headers: %s", activeSession.SessionID)
+
+    log.Printf("Active session for model %s: %+v", modelID, activeSessions[modelID])
+    if session, exists := activeSessions[modelID]; exists && session.SessionID != "" {
+        // Add session ID to request headers
+        req.Header.Set("Session_id", session.SessionID)
+        log.Printf("Setting session ID in request headers: %s", session.SessionID)
     } else {
-        log.Printf("Warning: No active session ID available")
-        return nil, fmt.Errorf("no active session")
+        log.Printf("Warning: No active session ID available for model %s", modelID)
+        return nil, fmt.Errorf("no active session for model %s", modelID)
     }
 
     // Add debug logging for all headers
     log.Printf("Request headers: %v", req.Header)
     log.Printf("Request body: %s", reqBodyBytes)
 
-    client = &http.Client{
+    client := &http.Client{
         Timeout: 30 * time.Second,
     }
 
-    // Add detailed error logging
     resp, err := client.Do(req)
     if err != nil {
         log.Printf("Request failed: %v", err)
@@ -267,9 +445,9 @@ func forwardRequest(requestBody map[string]interface{}) (*http.Response, error) 
     return resp, nil
 }
 
-// handleStreamingRequest processes streaming requests
-func handleStreamingRequest(w http.ResponseWriter, requestBody map[string]interface{}) {
-    resp, err := forwardRequest(requestBody)
+// Update handleStreamingRequest and handleNonStreamingRequest
+func handleStreamingRequest(w http.ResponseWriter, requestBody map[string]interface{}, modelID string) {
+    resp, err := forwardRequest(requestBody, modelID)
     if err != nil {
         respondWithError(w, http.StatusInternalServerError, "Failed to forward streaming request")
         return
@@ -295,9 +473,8 @@ func handleStreamingRequest(w http.ResponseWriter, requestBody map[string]interf
     }
 }
 
-// handleNonStreamingRequest processes non-streaming requests
-func handleNonStreamingRequest(w http.ResponseWriter, requestBody map[string]interface{}) {
-    resp, err := forwardRequest(requestBody)
+func handleNonStreamingRequest(w http.ResponseWriter, requestBody map[string]interface{}, modelID string) {
+    resp, err := forwardRequest(requestBody, modelID)
     if err != nil {
         respondWithError(w, http.StatusInternalServerError, "Failed to forward request")
         return
@@ -342,8 +519,15 @@ func StartProxyServer() {
         log.Fatal("WALLET_ADDRESS environment variable must be set to a valid address")
     }
     
-    modelID := getModelID() // Validate MODEL_ID exists
+    modelID := os.Getenv("MODEL_ID") // Validate MODEL_ID exists
     log.Printf("Starting proxy server with Model ID: %s", modelID)
+
+    // Validate that at least one model ID is configured
+    if os.Getenv("MODEL_ID") == "" {
+        log.Fatal("MODEL_ID environment variable must be set")
+    }
+    
+    log.Printf("Starting proxy server with supported models: %v", getModelHandles())
 
     http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusOK)
@@ -358,3 +542,11 @@ func StartProxyServer() {
     log.Printf("Proxy server is running on port %s", port)
     log.Fatal(http.ListenAndServe(":"+port, nil))
 }
+
+// Helper function to get supported model handles
+func getModelHandles() []string {
+    handles := make([]string, 0, len(modelHandleToID))
+    for handle := range modelHandleToID {
+        handles = append(handles, handle)
+    }
+    return handles}

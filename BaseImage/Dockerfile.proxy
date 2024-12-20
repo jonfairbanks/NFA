@@ -1,7 +1,11 @@
 # Dockerfile.proxy
 
 # Use the official Golang image as the build environment
-FROM golang:1.22.3-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.22.3-alpine AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG BUILDPLATFORM
 
 # Install git and build essentials
 RUN apk add --no-cache git build-base
@@ -12,10 +16,10 @@ WORKDIR /app
 COPY . .
 
 # Build the binary for the specified architecture
-RUN CGO_ENABLED=0 ./scripts/build.sh
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=0 ./scripts/build.sh
 
-# Final stage
-FROM alpine:latest
+# Final stage - use correct platform
+FROM --platform=$TARGETPLATFORM alpine:latest
 
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates dbus dbus-x11

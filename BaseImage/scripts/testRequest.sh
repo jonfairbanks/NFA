@@ -1,15 +1,11 @@
 #!/bin/zsh
 
 PORT=8080
-MODEL_ID=${MODEL_ID:-$(grep MODEL_ID ../.env | cut -d '=' -f2)}
+MODEL_HANDLE="LMR-Hermes-2-Theta-Llama-3-8B"
 
-# Verify MODEL_ID is available
-if [ -z "$MODEL_ID" ]; then
-    echo "Error: MODEL_ID not set"
-    exit 1
-fi
-
-echo "Using MODEL_ID: $MODEL_ID"
+echo "Using MODEL_HANDLE: $MODEL_HANDLE"
+echo "Checking environment variables..."
+echo "MODEL_ID: $MODEL_ID"
 
 # Function to check if a service is running on a port
 check_service() {
@@ -37,11 +33,19 @@ if ! check_service 9000; then
     exit 1
 fi
 
+# Add verbose output for debugging
+echo "Testing non-streaming request to http://localhost:$PORT/v1/chat/completions..."
+echo "Request body:"
+echo '{
+    "model": "'"$MODEL_HANDLE"'",
+    "messages": [{"role": "user", "content": "Hello"}]
+}'
+
 echo "Testing non-streaming request..."
 curl -v -X POST http://localhost:$PORT/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "'"$MODEL_ID"'",
+    "model": "'"$MODEL_HANDLE"'",
     "messages": [{"role": "user", "content": "Hello"}]
   }'
 
@@ -49,7 +53,7 @@ echo -e "\nTesting streaming request..."
 curl -v -X POST http://localhost:$PORT/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "0x6a4813e866a48da528c533e706344ea853a1d3f21e37b4c8e7ffd5ff25772024",
+    "model": "'"$MODEL_HANDLE"'",
     "messages": [{"role": "user", "content": "Hello"}],
     "stream": true
   }'
