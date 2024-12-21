@@ -8,15 +8,14 @@ This guide will help you set up and run the **NFA Proxy**, enabling you to build
 
 Ensure you have the following installed on your Mac machine:
 
-- **Git**: Version control system.
+```bash
+brew install git
+```
 
-    ```bash
-    brew install git
-    ```
-
-- **Docker Desktop for Mac**: Containerization platform.
-
-    [Download and install Docker Desktop](https://www.docker.com/products/docker-desktop).
+```bash
+# Download and install Docker Desktop for Mac:
+# https://www.docker.com/products/docker-desktop
+```
 
 ---
 
@@ -26,17 +25,17 @@ Ensure you have the following installed on your Mac machine:
 
 Begin by cloning the **BaseImage** repository to your local machine:
 
-    ```bash
-    git clone https://github.com/MORpheus-Software/NFA.git
-    ```
+```bash
+git clone https://github.com/MORpheus-Software/NFA.git
+```
 
 ### 2. Navigate to the BaseImage Directory
 
 Change to the BaseImage directory:
 
-    ```bash
-    cd BaseImage
-    ```
+```bash
+cd BaseImage
+```
 
 ### 3. Set Up Environment Variables
 
@@ -44,21 +43,21 @@ The BaseImage project uses environment variables for configuration. Follow these
 
 1. Copy the example environment file:
 
-    ```bash
-    cp example.env .env
-    ```
+```bash
+cp example.env .env
+```
 
 2. Edit the `.env` file and replace the placeholder values:
 
-    ```dotenv
-    # .env
-    WALLET_PRIVATE_KEY=your_private_key_here
-    WALLET_ADDRESS=your_wallet_address_here
-    PORT=8080
-    MARKETPLACE_URL=http://localhost:9000/v1/chat/completions
-    SESSION_DURATION=1h
-    MODEL_ID=your_model_id_here
-    ```
+```dotenv
+# .env
+WALLET_PRIVATE_KEY=your_private_key_here
+WALLET_ADDRESS=your_wallet_address_here
+PORT=8080
+MARKETPLACE_URL=http://localhost:9000/v1/chat/completions
+SESSION_DURATION=1h
+MODEL_ID=your_model_id_here
+```
 
 **Important Notes:**
 - Replace all placeholder values with your actual configuration
@@ -73,10 +72,10 @@ The BaseImage project uses environment variables for configuration. Follow these
 
 The project includes a build script with several options:
 
-    ```bash
-    chmod +x scripts/docker-build.sh
-    ./scripts/docker-build.sh -t nfa-proxy -f Dockerfile.proxy
-    ```
+```bash
+chmod +x scripts/docker-build.sh
+./scripts/docker-build.sh -t nfa-proxy -f Dockerfile.proxy
+```
 
 Build script options:
 - `-t`: Specify the image tag (default: nfa-base)
@@ -85,17 +84,18 @@ Build script options:
 - `-a`: Add build arguments in key=value format
 
 Example with multiple options:
-    ```bash
-    ./scripts/docker-build.sh -t nfa-proxy -f Dockerfile.proxy -p linux/amd64 -p linux/arm64
-    ```
+
+```bash
+./scripts/docker-build.sh -t nfa-proxy -f Dockerfile.proxy -p linux/amd64 -p linux/arm64
+```
 
 ### 2. Run the NFA Proxy Container with Docker Compose
 
 Start the NFA Proxy container using Docker Compose:
 
-    ```bash
-    docker-compose up -d
-    ```
+```bash
+docker-compose up -d
+```
 
 This command runs the `nfa-proxy` service defined in the `docker-compose.yml` file in detached mode.
 
@@ -103,17 +103,17 @@ This command runs the `nfa-proxy` service defined in the `docker-compose.yml` fi
 
 Check that the container is running:
 
-    ```bash
-    docker-compose ps
-    ```
+```bash
+docker-compose ps
+```
 
 You should see the `nfa-proxy` service in the list.
 
 Test the health endpoint:
 
-    ```bash
-    curl http://localhost:8080/health
-    ```
+```bash
+curl http://localhost:8080/health
+```
 
 You should receive a response indicating that the service is healthy.
 
@@ -127,28 +127,28 @@ You can test the NFA Proxy by sending requests to the chat completion endpoint.
 
 #### Example: Chat Completion Request
 
-    ```bash
-    curl -X POST http://localhost:8080/v1/chat/completions \
-      -H "Content-Type: application/json" \
-      -d '{
-            "model": "YourModelName",
-            "messages": [{"role": "user", "content": "Hello, agent!"}]
-          }'
-    ```
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+        "model": "YourModelName",
+        "messages": [{"role": "user", "content": "Hello, agent!"}]
+      }'
+```
 
 Replace `"YourModelName"` with the name of the model you are using.
 
 #### Example: Streaming Chat Completion
 
-    ```bash
-    curl -N -X POST http://localhost:8080/v1/chat/completions \
-      -H "Content-Type: application/json" \
-      -d '{
-            "model": "YourModelName",
-            "messages": [{"role": "user", "content": "Stream this message."}],
-            "stream": true
-          }'
-    ```
+```bash
+curl -N -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+        "model": "YourModelName",
+        "messages": [{"role": "user", "content": "Stream this message."}],
+        "stream": true
+      }'
+```
 
 The `-N` flag keeps the connection open for streaming responses.
 
@@ -156,17 +156,17 @@ The `-N` flag keeps the connection open for streaming responses.
 
 To see the logs of the NFA Proxy container:
 
-    ```bash
-    docker-compose logs -f nfa-proxy
-    ```
+```bash
+docker-compose logs -f nfa-proxy
+```
 
 ### Stopping the NFA Proxy
 
 To stop and remove the container:
 
-    ```bash
-    docker-compose down
-    ```
+```bash
+docker-compose down
+```
 
 ---
 
@@ -190,11 +190,13 @@ To stop and remove the container:
 ## Additional Scripts
 
 To remove all containers, images, and volumes from your environment, run:
+
 ```bash
 ./scripts/clean.sh
 ```
 
 To run the Morpheus Node locally for testing or development, run:
+
 ```bash
 ./scripts/runMorpheusNode.sh
 ```
