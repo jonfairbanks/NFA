@@ -40,17 +40,15 @@ Change to the BaseImage directory:
 
 ### 3. Set Up Environment Variables
 
-You have two options to set up environment variables:
+The BaseImage project uses environment variables for configuration. Follow these steps:
 
-#### Option 1: Using a `.env` File
-
-Create a `.env` file in the BaseImage directory to configure necessary environment variables:
+1. Copy the example environment file:
 
     ```bash
-    touch .env
+    cp example.env .env
     ```
 
-Edit the `.env` file and add the following content:
+2. Edit the `.env` file and replace the placeholder values:
 
     ```dotenv
     # .env
@@ -59,36 +57,13 @@ Edit the `.env` file and add the following content:
     PORT=8080
     MARKETPLACE_URL=http://localhost:9000/v1/chat/completions
     SESSION_DURATION=1h
+    MODEL_ID=your_model_id_here
     ```
 
-**Important:**
-
-- Replace `your_private_key_here` with your test wallet private key.
-- Replace `your_wallet_address_here` with your test wallet address.
-- Use **test credentials** only. Do **not** use real private keys or sensitive data.
-
-#### Option 2: Updating `docker-compose.yml`
-
-Alternatively, you can directly update the environment variables in the `docker-compose.yml` file. Open the `docker-compose.yml` file and add the environment variables under the `nfa-proxy` service:
-
-    ```yaml
-    services:
-      nfa-proxy:
-        # ...existing code...
-        environment:
-          - WALLET_PRIVATE_KEY=your_private_key_here
-          - WALLET_ADDRESS=your_wallet_address_here
-          - PORT=8080
-          - MARKETPLACE_URL=http://localhost:9000/v1/chat/completions
-          - SESSION_DURATION=1h
-        # ...existing code...
-    ```
-
-**Important:**
-
-- Replace `your_private_key_here` with your test wallet private key.
-- Replace `your_wallet_address_here` with your test wallet address.
-- Use **test credentials** only. Do **not** use real private keys or sensitive data.
+**Important Notes:**
+- Replace all placeholder values with your actual configuration
+- Use **test credentials** only - never commit real private keys
+- The `MODEL_ID` is required for the proxy to function correctly
 
 ---
 
@@ -96,14 +71,23 @@ Alternatively, you can directly update the environment variables in the `docker-
 
 ### 1. Build the Docker Image
 
-Use the provided build script to build the NFA Proxy Docker image:
+The project includes a build script with several options:
 
     ```bash
     chmod +x scripts/docker-build.sh
     ./scripts/docker-build.sh -t nfa-proxy -f Dockerfile.proxy
     ```
 
-This script builds the Docker image with the tag `nfa-proxy` using the `Dockerfile.proxy` file.
+Build script options:
+- `-t`: Specify the image tag (default: nfa-base)
+- `-f`: Specify the Dockerfile to use (default: Dockerfile.proxy)
+- `-p`: Specify platform(s) to build for (default: host architecture)
+- `-a`: Add build arguments in key=value format
+
+Example with multiple options:
+    ```bash
+    ./scripts/docker-build.sh -t nfa-proxy -f Dockerfile.proxy -p linux/amd64 -p linux/arm64
+    ```
 
 ### 2. Run the NFA Proxy Container with Docker Compose
 
@@ -200,6 +184,20 @@ To stop and remove the container:
 - **Port Conflicts**: Check for port conflicts on `8080` and adjust accordingly.
 - **Missing Dependencies**: Confirm that all prerequisites are installed and properly configured.
 - **Environment Variable Issues**: Double-check the `.env` file for typos or incorrect values.
+
+---
+
+## Additional Scripts
+
+To remove all containers, images, and volumes from your environment, run:
+```bash
+./scripts/clean.sh
+```
+
+To run the Morpheus Node locally for testing or development, run:
+```bash
+./scripts/runMorpheusNode.sh
+```
 
 ---
 
