@@ -1,11 +1,9 @@
 #!/bin/zsh
 
 PORT=8080
-MODEL_HANDLE="LMR-Hermes-2-Theta-Llama-3-8B"
+MODEL_HANDLE="LMR-Hermes-2-Theta-Llama-3-8B"  # Use new model handle
 
 echo "Using MODEL_HANDLE: $MODEL_HANDLE"
-echo "Checking environment variables..."
-echo "MODEL_ID: $MODEL_ID"
 
 # Function to check if a service is running on a port
 check_service() {
@@ -32,14 +30,6 @@ if ! check_service 9000; then
     echo "Please start it with docker compose up"
     exit 1
 fi
-
-# Add verbose output for debugging
-echo "Testing non-streaming request to http://localhost:$PORT/v1/chat/completions..."
-echo "Request body:"
-echo '{
-    "model": "'"$MODEL_HANDLE"'",
-    "messages": [{"role": "user", "content": "Hello"}]
-}'
 
 echo "Testing non-streaming request..."
 curl -v -X POST http://localhost:$PORT/v1/chat/completions \

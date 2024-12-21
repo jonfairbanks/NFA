@@ -2,17 +2,11 @@ name: nfa-proxy
 
 services:
   marketplace:
-    build:
-      context: ./morpheus-node/proxy-router
-      dockerfile: Dockerfile
-      args:
-        COMMIT: ${COMMIT:-latest}
-    image: proxy-router:${VERSION:-latest}
+    image: srt0422/morpheus-marketplace:${VERSION:-latest}
     environment:
       - WEB_ADDRESS=0.0.0.0:9000
       - WEB_PUBLIC_URL=http://localhost:9000
       # - WALLET_PRIVATE_KEY=UNCOMMENT TO CONFIGURE YOUR WALLET 
-      - WALLET_PRIVATE_KEY=6f3453bc036158833281b9e0204975bad0f2a4407c4ab32132bb0f9e6e692cbb
       - DIAMOND_CONTRACT_ADDRESS=0xb8C55cD613af947E73E262F0d3C54b7211Af16CF
       - MOR_TOKEN_ADDRESS=0x34a285a1b1c166420df5b6630132542923b5b27e
       - EXPLORER_API_URL=https://api-sepolia.arbiscan.io/api
@@ -39,9 +33,9 @@ services:
       dockerfile: Dockerfile.proxy
       args:
         TARGETOS: linux
-        TARGETARCH: arm64  # Changed from amd64 to arm64
+        TARGETARCH: amd64  # Changed from amd64 to arm64
       platforms:
-        - linux/arm64      # Changed from linux/amd64 to linux/arm64
+        - linux/amd64      # Changed from linux/amd64 to linux/arm64
     image: nfa-proxy:latest
     env_file:
       - .env

@@ -27,10 +27,8 @@ Ensure you have the following installed on your Mac machine:
 Begin by cloning the **BaseImage** repository to your local machine:
 
     ```bash
-    git clone https://github.com/YourOrganization/BaseImage.git
+    git clone https://github.com/MORpheus-Software/NFA.git
     ```
-
-Replace `https://github.com/YourOrganization/BaseImage.git` with the actual repository URL if different.
 
 ### 2. Navigate to the BaseImage Directory
 

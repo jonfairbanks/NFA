@@ -2,7 +2,7 @@ name: nfa-proxy
 
 services:
   marketplace:
-    image: srt0422/morpheus-marketplace:beta-1
+    image: srt0422/morpheus-marketplace:latest
     environment:
       - WEB_ADDRESS=0.0.0.0:9000
       - WEB_PUBLIC_URL=http://localhost:9000
@@ -25,7 +25,7 @@ services:
       - "127.0.0.1:3333:3333"
 
   nfa-proxy:
-    image: srt0422/openai-morpheus-proxy:beta-1
+    image: srt0422/openai-morpheus-proxy:latest
     platform: linux/arm64
     env_file:
       - ../.env
