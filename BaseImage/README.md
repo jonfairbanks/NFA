@@ -40,7 +40,7 @@ Change to the BaseImage directory:
 
 ### 3. Set Up Environment Variables
 
-Create a `.env` file in the [BaseImage](http://_vscodecontentref_/0) directory to configure necessary environment variables:
+Create a `.env` file in the BaseImage directory to configure necessary environment variables:
 
     ```bash
     touch .env
@@ -65,7 +65,7 @@ Edit the `.env` file and add the following content:
 
 ---
 
-## Steps to Run the NFA Proxy in a Docker Container
+## Steps to Run the NFA Proxy with Docker Compose
 
 ### 1. Build the Docker Image
 
@@ -78,29 +78,25 @@ Use the provided build script to build the NFA Proxy Docker image:
 
 This script builds the Docker image with the tag `nfa-proxy` using the `Dockerfile.proxy` file.
 
-### 2. Run the NFA Proxy Container
+### 2. Run the NFA Proxy Container with Docker Compose
 
-Start the NFA Proxy container:
+Start the NFA Proxy container using Docker Compose:
 
     ```bash
-    docker run -d \
-      --name nfa-proxy \
-      --env-file .env \
-      -p 8080:8080 \
-      nfa-proxy
+    docker-compose up -d
     ```
 
-This command runs the `nfa-proxy` image in detached mode, names the container `nfa-proxy`, loads environment variables from the `.env` file, and maps port `8080` of the container to port `8080` on your machine.
+This command runs the `nfa-proxy` service defined in the `docker-compose.yml` file in detached mode.
 
 ### 3. Verify the NFA Proxy is Running
 
 Check that the container is running:
 
     ```bash
-    docker ps
+    docker-compose ps
     ```
 
-You should see the `nfa-proxy` container in the list.
+You should see the `nfa-proxy` service in the list.
 
 Test the health endpoint:
 
@@ -150,7 +146,7 @@ The `-N` flag keeps the connection open for streaming responses.
 To see the logs of the NFA Proxy container:
 
     ```bash
-    docker logs -f nfa-proxy
+    docker-compose logs -f nfa-proxy
     ```
 
 ### Stopping the NFA Proxy
@@ -158,8 +154,7 @@ To see the logs of the NFA Proxy container:
 To stop and remove the container:
 
     ```bash
-    docker stop nfa-proxy
-    docker rm nfa-proxy
+    docker-compose down
     ```
 
 ---
@@ -167,7 +162,7 @@ To stop and remove the container:
 ## Additional Notes
 
 - **Environment Variables**: Ensure all required variables in the `.env` file are correctly set.
-- **Port Configuration**: If port `8080` is in use, modify the `-p` flag in the `docker run` command to map to an available port.
+- **Port Configuration**: If port `8080` is in use, modify the `ports` section in the `docker-compose.yml` file to map to an available port.
 - **Marketplace URL**: The `MARKETPLACE_URL` should point to a running instance of the marketplace. Adjust it if running the marketplace on a different host or port.
 
 ---
