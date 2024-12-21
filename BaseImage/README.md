@@ -40,6 +40,10 @@ Change to the BaseImage directory:
 
 ### 3. Set Up Environment Variables
 
+You have two options to set up environment variables:
+
+#### Option 1: Using a `.env` File
+
 Create a `.env` file in the BaseImage directory to configure necessary environment variables:
 
     ```bash
@@ -55,6 +59,29 @@ Edit the `.env` file and add the following content:
     PORT=8080
     MARKETPLACE_URL=http://localhost:9000/v1/chat/completions
     SESSION_DURATION=1h
+    ```
+
+**Important:**
+
+- Replace `your_private_key_here` with your test wallet private key.
+- Replace `your_wallet_address_here` with your test wallet address.
+- Use **test credentials** only. Do **not** use real private keys or sensitive data.
+
+#### Option 2: Updating `docker-compose.yml`
+
+Alternatively, you can directly update the environment variables in the `docker-compose.yml` file. Open the `docker-compose.yml` file and add the environment variables under the `nfa-proxy` service:
+
+    ```yaml
+    services:
+      nfa-proxy:
+        # ...existing code...
+        environment:
+          - WALLET_PRIVATE_KEY=your_private_key_here
+          - WALLET_ADDRESS=your_wallet_address_here
+          - PORT=8080
+          - MARKETPLACE_URL=http://localhost:9000/v1/chat/completions
+          - SESSION_DURATION=1h
+        # ...existing code...
     ```
 
 **Important:**
