@@ -123,9 +123,17 @@ You should receive a response indicating that the service is healthy.
 
 ### Testing the Chat Endpoints
 
-You can test the NFA Proxy by sending requests to the chat completion endpoint.
+You can quickly test the NFA Proxy with the provided script:
 
-#### Example: Chat Completion Request
+```bash
+./scripts/testRequest.sh
+```
+
+This script verifies that the proxy and marketplace are running, then sends test requests (non-stream and stream).
+
+#### Manual cURL Requests
+
+You can test the NFA Proxy by sending requests to the chat completion endpoint.
 
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \
@@ -194,13 +202,6 @@ To remove all containers, images, and volumes from your environment, run:
 ```bash
 ./scripts/clean.sh
 ```
-
-To run the Morpheus Node locally for testing or development, run:
-
-```bash
-./scripts/runMorpheusNode.sh
-```
-
 ---
 
 You're now ready to build and test your agent with the NFA Proxy!
