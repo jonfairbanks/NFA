@@ -122,6 +122,9 @@ dist
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
+# Stores local workspace config
+*.code-workspace
+
 # yarn v2
 .yarn/cache
 .yarn/unplugged
@@ -133,6 +136,7 @@ dist
 ./SmartContracts/nitro
 
 */.DS_Store
+
 
 #submodules
 BaseImage/morpheus-node
