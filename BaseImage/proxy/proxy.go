@@ -18,20 +18,21 @@ import (
 	"github.com/sony/gobreaker"
 )
 
-// SessionManager manages session states
+// Update SessionManager to track model ID
 type SessionManager struct {
     SessionID string
-    // Add more fields if necessary
+    ModelID   string
 }
 
-// GetSessionID retrieves the current session ID
-func (sm *SessionManager) GetSessionID() string {
-    return sm.SessionID
+// Update GetSessionID to include model context
+func (sm *SessionManager) GetSessionInfo() (string, string) {
+    return sm.SessionID, sm.ModelID
 }
 
-// UpdateSessionID updates the session ID
-func (sm *SessionManager) UpdateSessionID(newID string) {
-    sm.SessionID = newID
+// Update UpdateSessionID to track model
+func (sm *SessionManager) UpdateSession(sessionID, modelID string) {
+    sm.SessionID = sessionID
+    sm.ModelID = modelID
 }
 
 // SessionManagerInstance is a global instance of SessionManager
@@ -73,25 +74,28 @@ var (
 
 // Remove getModelID function as modelID comes from the request
 
-// Modify ensureSession to accept modelID as a parameter
+// Modify ensureSession to be more robust
 func ensureSession(modelID string) error {
     sessionMutex.Lock()
     defer sessionMutex.Unlock()
 
-    // Debug the session state
-    log.Printf("Checking session state for model %s", modelID)
-
+    currentSessionID, currentModelID := SessionManagerInstance.GetSessionInfo()
+    
+    // Check if we already have a valid session for this model
     session, exists := activeSessions[modelID]
-    if exists && time.Since(session.LastUsed) < 30*time.Minute {
-        log.Printf("Using existing session for model %s: %s", modelID, session.SessionID)
-        session.LastUsed = time.Now()
-        return nil
+    if exists && session.SessionID != "" && time.Since(session.LastUsed) < 30*time.Minute {
+        if currentModelID == modelID {
+            log.Printf("Using existing session for model %s: %s", modelID, session.SessionID)
+            session.LastUsed = time.Now()
+            return nil
+        }
     }
 
-    log.Printf("Establishing new session for model %s", modelID)
+    log.Printf("Creating new session for model %s (current model: %s)", modelID, currentModelID)
 
+    // Create new session
     reqBody := map[string]interface{}{
-        "sessionDuration": 3600, // Send as number, not string
+        "sessionDuration": 3600,
         "failover":        false,
     }
 
@@ -135,6 +139,9 @@ func ensureSession(modelID string) error {
         LastUsed:  time.Now(),
     }
 
+    // Update the global session manager
+    SessionManagerInstance.UpdateSession(result.Id, modelID)
+    
     log.Printf("Successfully established new session for model %s: %s", modelID, result.Id)
     return nil
 }
@@ -328,7 +335,7 @@ func validateModelHandle(handle string) (string, error) {
     return findModelID(handle)
 }
 
-// Update ProxyChatCompletion function
+// Update ProxyChatCompletion to ensure proper model and session handling
 func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
     // Read and log the request body
     bodyBytes, err := io.ReadAll(r.Body)
@@ -349,7 +356,7 @@ func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
 
     // Extract and validate model handle
     modelHandle, ok := requestBody["model"].(string)
-    if !ok {
+    if (!ok) {
         respondWithError(w, http.StatusBadRequest, "model field is required")
         return
     }
@@ -366,6 +373,9 @@ func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
         respondWithError(w, http.StatusInternalServerError, "Failed to establish session")
         return
     }
+
+    // Update SessionManager with the new or existing session ID
+    SessionManagerInstance.UpdateSession(activeSessions[modelID].SessionID, modelID)
 
     // Update request with actual model ID
     requestBody["model"] = modelID
@@ -388,7 +398,7 @@ func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
 // Modify forwardRequest to accept modelID and use the correct session
 func forwardRequest(requestBody map[string]interface{}, modelID string) (*http.Response, error) {
     marketplaceURL := os.Getenv("MARKETPLACE_URL")
-    if marketplaceURL == "" {
+    if (marketplaceURL == "") {
         return nil, fmt.Errorf("MARKETPLACE_URL environment variable is not set")
     }
 
@@ -527,7 +537,7 @@ func StartProxyServer() {
         log.Fatal("MODEL_ID environment variable must be set")
     }
     
-    log.Printf("Starting proxy server with supported models: %v", getModelHandles())
+    // log.Printf("Starting proxy server with supported models: %v", getModelHandles())
 
     http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusOK)

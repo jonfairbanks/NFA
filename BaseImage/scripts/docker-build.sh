@@ -39,6 +39,11 @@ while getopts "t:f:p:a:h" opt; do
     esac
 done
 
+# Load environment variables from .env if present
+if [ -f ../.env ]; then
+    export $(grep -v '^#' ../.env | xargs)
+fi
+
 # If no platform specified, use host architecture
 if [ ${#PLATFORMS[@]} -eq 0 ]; then
     PLATFORMS+=("linux/${DEFAULT_ARCH}")
