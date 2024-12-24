@@ -79,7 +79,7 @@ func ensureSession(modelID string) error {
     sessionMutex.Lock()
     defer sessionMutex.Unlock()
 
-    currentSessionID, currentModelID := SessionManagerInstance.GetSessionInfo()
+    _, currentModelID := SessionManagerInstance.GetSessionInfo()
     
     // Check if we already have a valid session for this model
     session, exists := activeSessions[modelID]
