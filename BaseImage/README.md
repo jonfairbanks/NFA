@@ -1,5 +1,30 @@
 # Getting Started with NFA Proxy for Agent Builders
 
+## Running with Prebuilt Images
+
+### 1. Navigate to the Containers Directory
+
+```bash
+cd containers
+```
+
+### 2. Run Docker Compose
+
+```bash
+docker-compose up -d
+```
+
+### 3. Docker Registry Source
+
+The prebuilt images are sourced from the [srt0422 Docker Hub Registry](https://hub.docker.com/u/srt0422).
+
+### 4. Configure Wallet and Model ID
+
+- **Wallet Configuration**: Even when using prebuilt images, you must configure your wallet by setting the `WALLET_PRIVATE_KEY` and `WALLET_ADDRESS` in the `.containers/docker-compose.yml` file to match your developer credentials.
+- **Model ID Configuration**: Set the `MODEL_ID` in the `containers/docker-compose.yml` file to specify which model the proxy should use. This ensures the proxy interacts correctly with your chosen model.
+
+## Building from Source
+
 This guide will help you set up and run the **NFA Proxy**, enabling you to build and test your agent with the proxy in place. The NFA Proxy acts as an intermediary between your agent and the Morpheus Marketplace, handling session initiation and request forwarding.
 
 ---
