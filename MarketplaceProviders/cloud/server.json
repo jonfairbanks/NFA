@@ -1,0 +1,48 @@
+{
+  "AIEngine": {
+    "OpenAIBaseURL": "",
+    "OpenAIKey": ""
+  },
+  "Blockchain": {
+    "EthNodeAddress": "",
+    "EthLegacyTx": false,
+    "ExplorerApiUrl": ""
+  },
+  "Environment": "development",
+  "Marketplace": {
+    "DiamondContractAddress": "0xb8C55cD613af947E73E262F0d3C54b7211Af16CF",
+    "MorTokenAddress": "0x34a285A1B1C166420Df5b6630132542923B5b27E",
+    "WalletPrivateKey": null
+  },
+  "Log": {
+    "Color": true,
+    "FolderPath": "",
+    "IsProd": false,
+    "JSON": false,
+    "LevelApp": "info",
+    "LevelConnection": "info",
+    "LevelProxy": "info",
+    "LevelScheduler": "info",
+    "LevelContract": ""
+  },
+  "Proxy": {
+    "Address": "0.0.0.0:3333",
+    "MaxCachedDests": 5,
+    "StoragePath": "",
+    "ModelsConfigPath": ""
+  },
+  "System": {
+    "Enable": false,
+    "LocalPortRange": "1024-65535",
+    "NetdevMaxBacklog": 100000,
+    "RlimitHard": 524288,
+    "RlimitSoft": 524288,
+    "Somaxconn": 100000,
+    "TcpMaxSynBacklog": 100000,
+    "ProjectId": "graphical-bus-433219-g5"
+  },
+  "Web": {
+    "Address": "0.0.0.0:8082",
+    "PublicUrl": "http://35.227.134.166:8082"
+  }
+}

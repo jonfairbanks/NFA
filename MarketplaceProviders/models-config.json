@@ -1,0 +1,8 @@
+{
+    "0x5781caf0457ceda99459aa9f8a86b98675b45fa27788b9a058c5c184e640065e": {
+        "modelName": "llama2",
+        "apiType": "openai",
+        "apiUrl": "https://9079161191267303424.us-central1-fasttryout.prediction.vertexai.goog/v1/projects/101868473812/locations/us-central1/endpoints/9079161191267303424",
+        "apiKey": "19dcf7e801e37e40e078d639cfeab6c7a3403ce0"
+    }
+}

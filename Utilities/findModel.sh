@@ -2,6 +2,30 @@
 
 #set -u  # Error on undefined variables
 
+# Load environment variables from .env file
+load_env() {
+    if [ -f .env ]; then
+        while IFS='=' read -r key value; do
+            # Skip comments and empty lines
+            [[ $key =~ ^#.*$ || -z $key ]] && continue
+            # Remove quotes and export the variable
+            value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+            export "$key=$value"
+            echo "Loaded: $key"
+        done < .env
+    fi
+}
+
+# Load environment variables
+load_env
+
+# Validate required environment variables
+if [ -z "$PROVIDER_URL" ]; then
+    echo "Error: PROVIDER_URL is not set in .env file"
+    echo "Please add PROVIDER_URL=<your-provider-url> to your .env file"
+    exit 1
+fi
+
 # Check dependencies
 check_dependencies() {
     local missing_deps=()
@@ -62,35 +86,112 @@ MARKETPLACE_PORT=9000
 echo "Starting marketplace service check..."
 
 # Fix: Use the correct blockchain API endpoint for models
-MODELS_URL="http://localhost:${MARKETPLACE_PORT}/blockchain/models"
+MODELS_URL="${PROVIDER_URL}/blockchain/models"
 echo "Testing marketplace API at $MODELS_URL"
 
+# Create temp files for curl output and logging
+TEMP_DIR=$(mktemp -d)
+TEMP_RESULTS="${TEMP_DIR}/results.txt"
+CURL_LOG="${TEMP_DIR}/curl.log"
+CURL_BODY="${TEMP_DIR}/response.json"
+CURL_FORMAT="${TEMP_DIR}/curl-format.txt"
+
+# Create curl format file for detailed timing
+cat > "${CURL_FORMAT}" << 'EOF'
+    time_namelookup:  %{time_namelookup}s\n
+       time_connect:  %{time_connect}s\n
+    time_appconnect:  %{time_appconnect}s\n
+   time_pretransfer:  %{time_pretransfer}s\n
+      time_redirect:  %{time_redirect}s\n
+ time_starttransfer:  %{time_starttransfer}s\n
+                    ----------\n
+         time_total:  %{time_total}s\n
+EOF
+
+# Cleanup function
+cleanup() {
+    rm -rf "${TEMP_DIR}"
+}
+trap cleanup EXIT
+
 # Get the models using the new API format with pagination params
-MODELS_RESPONSE=$(curl -s \
+echo "Making request to: ${MODELS_URL}?limit=100&order=desc"
+echo "Capturing full response details..."
+
+# Make the curl request with detailed logging
+curl -w "@${CURL_FORMAT}" -v -s \
     -H "Accept: application/json" \
     -H "Content-Type: application/json" \
-    "${MODELS_URL}?limit=100&order=desc" 2>/dev/null)
+    -o "${CURL_BODY}" \
+    -D "${CURL_LOG}" \
+    "${MODELS_URL}?limit=100&order=desc" 2>&1 | tee "${TEMP_DIR}/full_output.log"
 
 CURL_EXIT=$?
 
+# Print formatted response details
+echo -e "\n===== CURL REQUEST DETAILS ====="
+echo -e "\033[1;36mRequest URL:\033[0m"
+echo "  ${MODELS_URL}?limit=100&order=desc"
+
+echo -e "\n\033[1;36mRequest Headers:\033[0m"
+grep -E "^>" "${TEMP_DIR}/full_output.log" | sed 's/> /  /'
+
+echo -e "\n\033[1;36mResponse Status:\033[0m"
+head -n1 "${CURL_LOG}" | sed 's/^/  /'
+
+echo -e "\n\033[1;36mResponse Headers:\033[0m"
+grep -E "^<" "${TEMP_DIR}/full_output.log" | sed 's/< /  /'
+
+echo -e "\n\033[1;36mResponse Size:\033[0m"
+echo "  $(wc -c < "${CURL_BODY}" | xargs) bytes"
+
+echo -e "\n\033[1;36mTiming Details:\033[0m"
+cat "${TEMP_DIR}/full_output.log" | grep -E "time_|total" | sed 's/^/  /'
+
 if [ $CURL_EXIT -ne 0 ]; then
-    echo "Error accessing models endpoint (exit code: $CURL_EXIT)"
-    echo "Failed URL: $MODELS_URL"
-    curl -v "$MODELS_URL"
+    echo -e "\n\033[1;31mError:\033[0m curl failed with exit code $CURL_EXIT"
+    echo -e "\033[1;31mFull debug log:\033[0m"
+    cat "${TEMP_DIR}/full_output.log"
     exit 1
 fi
 
-# Create temporary file for storing results
-TEMP_RESULTS=$(mktemp)
-trap 'rm -f $TEMP_RESULTS' EXIT
+# Store and validate response
+MODELS_RESPONSE=$(cat "${CURL_BODY}")
 
-# Parse and validate JSON response
+# Always show the raw response first
+echo -e "\n\033[1;36mRaw Response:\033[0m"
+echo "${MODELS_RESPONSE}"
+
+# Check if it's valid JSON
 if ! echo "$MODELS_RESPONSE" | jq -e . >/dev/null 2>&1; then
-    echo "Error: Invalid JSON response"
-    echo "Raw response:"
-    echo "$MODELS_RESPONSE"
+    echo -e "\n\033[1;31mError:\033[0m Invalid JSON response"
+    echo -e "\033[1;31mParsed response attempt:\033[0m"
+    echo "$MODELS_RESPONSE" | jq -C . || echo "Could not parse as JSON"
     exit 1
 fi
+
+# Check if response contains models array
+if ! echo "$MODELS_RESPONSE" | jq -e '.models' >/dev/null 2>&1; then
+    echo -e "\n\033[1;31mError:\033[0m Response does not contain 'models' array"
+    echo -e "\033[1;31mValid JSON but incorrect structure:\033[0m"
+    echo "$MODELS_RESPONSE" | jq -C .
+    exit 1
+fi
+
+# Only continue if we have valid data
+MODELS_COUNT=$(echo "$MODELS_RESPONSE" | jq '.models | length')
+if [ "$MODELS_COUNT" -eq 0 ]; then
+    echo -e "\n\033[1;33mWarning:\033[0m No models found in response"
+    echo -e "Response structure is valid but empty."
+    exit 0
+fi
+
+echo -e "\n\033[1;32mRequest successful!\033[0m"
+echo "Found ${MODELS_COUNT} models"
+
+# Optional: Display sample of response data
+echo -e "\n\033[1;36mResponse Preview:\033[0m"
+echo "$MODELS_RESPONSE" | jq -C '.models | length as $total | "Total models: \($total)\nFirst model:", .models[0]'
 
 # Process models with updated JSON structure
 echo "$MODELS_RESPONSE" | jq -r '.models[] | "\(.Id)|\(.Name)"' | while IFS="|" read -r id name; do

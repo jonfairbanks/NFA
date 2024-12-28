@@ -1,8 +1,8 @@
 #!/bin/zsh
 
 PORT=8080
-MODEL_HANDLE="LMR-Hermes-2-Theta-Llama-3-8B"  # Use new model handle
-
+# MODEL_HANDLE="nfa-llama2"  # Changed back to original model handle
+MODEL_HANDLE="Hermes 3 Llama 3.1"
 echo "Using MODEL_HANDLE: $MODEL_HANDLE"
 
 # Function to check if a service is running on a port

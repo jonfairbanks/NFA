@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: models-config
+data:
+  models-config.json: |-
+    {
+      "0x5781caf0457ceda99459aa9f8a86b98675b45fa27788b9a058c5c184e640065e": {
+        "modelName": "llama2",
+        "apiType": "openai",
+        "apiUrl": "https://9079161191267303424.us-central1-fasttryout.prediction.vertexai.goog/v1/projects/101868473812/locations/us-central1/endpoints/9079161191267303424",
+        "apiKey": "19dcf7e801e37e40e078d639cfeab6c7a3403ce0"
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: provider-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: provider
+  template:
+    metadata:
+      labels:
+        app: provider
+    spec:
+      containers:
+        - name: provider
+          image: srt0422/morpheus-marketplace-provider:v0.0.11
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          ports:
+            - containerPort: 3333
+              name: provider
+            - containerPort: 8080
+              name: metrics
+            - containerPort: 8082
+              name: health
+          env:
+            # Wallet configuration
+            - name: WALLET_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: provider-secrets
+                  key: wallet-private-key
+
+            # TESTNET VALUES
+            - name: DIAMOND_CONTRACT_ADDRESS
+              value: "0xb8C55cD613af947E73E262F0d3C54b7211Af16CF"
+            - name: MOR_TOKEN_ADDRESS
+              value: "0x34a285a1b1c166420df5b6630132542923b5b27e"
+            - name: EXPLORER_API_URL
+              value: "https://api-sepolia.arbiscan.io/api"
+            - name: ETH_NODE_CHAIN_ID
+              value: "421614"
+            - name: ENVIRONMENT
+              value: "development"
+
+            # COMMON
+            - name: PROXY_ADDRESS
+              value: "0.0.0.0:3333"
+            - name: WEB_ADDRESS
+              value: "0.0.0.0:8082"
+            - name: WEB_PUBLIC_URL
+              value: "http://35.227.134.166:8082"
+            - name: MODELS_CONFIG_PATH
+              value: "/app/data/models-config.json"
+            - name: ETH_NODE_USE_SUBSCRIPTIONS
+              value: "false"
+            - name: ETH_NODE_ADDRESS
+              value: "https://sepolia-rollup.arbitrum.io/rpc"
+            - name: ETH_NODE_LEGACY_TX
+              value: "false"
+            - name: PROXY_STORE_CHAT_CONTEXT
+              value: "true"
+            - name: PROXY_STORAGE_PATH
+              value: "./data/"
+            - name: LOG_COLOR
+              value: "true"
+
+          volumeMounts:
+            - name: provider-data
+              mountPath: /app/data
+            - name: models-config
+              mountPath: /app/data/models-config.json
+              subPath: models-config.json
+      volumes:
+        - name: provider-data
+          persistentVolumeClaim:
+            claimName: provider-data
+        - name: models-config
+          configMap:
+            name: models-config
