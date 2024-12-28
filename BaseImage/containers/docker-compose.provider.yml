@@ -1,0 +1,11 @@
+name: morpheus-provider
+
+services:
+  provider:
+    image: srt0422/morpheus-marketplace-provider:latest
+    env_file: ../morpheus-node/proxy-router/.env
+    environment:
+      - WEB_PUBLIC_URL=http://localhost:9000
+    ports:
+      - 9000:9000
+      - 3333:3334

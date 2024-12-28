@@ -1,0 +1,54 @@
+{
+  "App": {
+    "ResetKeychain": false
+  },
+  "Blockchain": {
+    "ChainID": 0,
+    "EthNodeAddress": "",
+    "EthLegacyTx": false,
+    "ExplorerApiUrl": "https://api-sepolia.arbiscan.io/api",
+    "ExplorerRetryDelay": "0s",
+    "ExplorerMaxRetries": 0,
+    "UseSubscriptions": false,
+    "PollingInterval": "10s",
+    "MaxReconnects": 30,
+    "Multicall3Addr": null
+  },
+  "Environment": "development",
+  "Marketplace": {
+    "DiamondContractAddress": "0xb8C55cD613af947E73E262F0d3C54b7211Af16CF",
+    "MorTokenAddress": "0x34a285A1B1C166420Df5b6630132542923B5b27E",
+    "WalletPrivateKey": null
+  },
+  "Log": {
+    "Color": true,
+    "FolderPath": "./logs/",
+    "IsProd": false,
+    "JSON": false,
+    "LevelApp": "debug",
+    "LevelTCP": "debug",
+    "LevelEthRPC": "info",
+    "LevelStorage": ""
+  },
+  "Proxy": {
+    "Address": "0.0.0.0:3335",
+    "StoragePath": "./data/badger/",
+    "StoreChatContext": true,
+    "ForwardChatContext": true,
+    "ModelsConfigPath": "",
+    "RatingConfigPath": "./rating-config.json"
+  },
+  "System": {
+    "Enable": false,
+    "LocalPortRange": "1024-65535",
+    "NetdevMaxBacklog": 100000,
+    "RlimitHard": 524288,
+    "RlimitSoft": 524288,
+    "Somaxconn": 2048,
+    "TcpMaxSynBacklog": 100000
+  },
+  "Web": {
+    "Address": ":8084",
+    "PublicUrl": "localhost:8082"
+  }
+}

@@ -2,9 +2,9 @@ name: nfa-proxy
 
 services:
   marketplace:
-    image: srt0422/morpheus-marketplace:v0.0.4
+    image: srt0422/morpheus-marketplace:v0.0.11
     env_file:
-      - .env
+      - ./morpheus-node/proxy-router/.env
     environment:
       - WEB_ADDRESS=${MARKETPLACE_WEB_ADDRESS:-0.0.0.0:9000}
       - WEB_PUBLIC_URL=${MARKETPLACE_WEB_PUBLIC_URL:-http://localhost:9000}
@@ -36,7 +36,7 @@ services:
         TARGETARCH: arm64  # Changed from amd64 to arm64
       platforms:
         - linux/arm64      # Changed from linux/amd64 to linux/arm64
-    image: nfa-proxy:latest
+    # image: nfa-proxy:latest
     env_file:
       - .env
     environment:
@@ -49,7 +49,7 @@ services:
       - DEFAULT_PORT=${DEFAULT_PORT:-8080}
       - MARKETPLACE_PORT=${MARKETPLACE_PORT:-9000}
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s

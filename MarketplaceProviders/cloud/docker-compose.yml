@@ -1,0 +1,18 @@
+services:
+  marketplace-provider:
+    build:
+      context: ./Morpheus-Lumerin-Node/proxy-router
+      dockerfile: Dockerfile
+      args:
+        - WALLET_PRIVATE_KEY=${WALLET_PRIVATE_KEY}
+    image: marketplace-provider-dev
+    container_name: marketplace-provider-dev
+    volumes:
+      - ./Morpheus-Lumerin-Node/proxy-router:/app
+      - ./Morpheus-Lumerin-Node/proxy-router/data:/app/data
+    env_file: ./Morpheus-Lumerin-Node/proxy-router/.env
+    ports:
+      - "8080:8080"
+      - "3333:3333"
+    # restart: unless-stopped
+    command: ["go", "run", "cmd/main.go"]

@@ -5,7 +5,7 @@ services:
     image: srt0422/morpheus-marketplace:latest
     platform: linux/arm64
     environment:
-      - WALLET_PRIVATE_KEY=2e70451f5364517e649241394d2133aec1c80b457641d4065ac8ccd944411067
+      - WALLET_PRIVATE_KEY=6f3453bc036158833281b9e0204975bad0f2a4407c4ab32132bb0f9e6e692cbb
       - WEB_ADDRESS=0.0.0.0:9000
       - WEB_PUBLIC_URL=http://localhost:9000
       - DIAMOND_CONTRACT_ADDRESS=0xb8C55cD613af947E73E262F0d3C54b7211Af16CF
@@ -39,7 +39,7 @@ services:
       - DEFAULT_PORT=8080
       - MARKETPLACE_PORT=9000
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8080:8080" 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
