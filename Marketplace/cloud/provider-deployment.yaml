@@ -37,7 +37,7 @@ spec:
         - "provider-service"
       containers:
         - name: provider
-          image: srt0422/morpheus-marketplace-provider:v0.0.11
+          image: srt0422/morpheus-marketplace-provider:${VERSION}
           resources:
             requests:
               memory: "1Gi"

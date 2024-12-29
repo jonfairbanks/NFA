@@ -13,5 +13,8 @@ kubectl create secret generic consumer-secrets \
 echo "Creating consumer PVC..."
 kubectl apply -f consumer-pvc.yaml
 
+echo "Creating consumer service..."
+kubectl apply -f consumer-service.yaml
+
 echo "Deploying consumer..."
-kubectl apply -f consumer-deployment.yaml
+envsubst < consumer-deployment.yaml | kubectl apply -f -
