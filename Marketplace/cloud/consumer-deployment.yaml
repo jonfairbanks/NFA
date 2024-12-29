@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+    spec:
+      hostAliases:
+      - ip: "34.118.232.160"  # Use your cluster IP here
+        hostnames:
+        - "consumer-service"
+      containers:
+        - name: consumer
+          image: srt0422/morpheus-marketplace-consumer:v0.0.11
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          ports:
+            - containerPort: 3334
+              name: consumer
+            - containerPort: 8083
+              name: health
+          env:
+            # Wallet configuration
+            - name: WALLET_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: consumer-secrets
+                  key: wallet-private-key
+
+            # TESTNET VALUES
+            - name: DIAMOND_CONTRACT_ADDRESS
+              value: "0xb8C55cD613af947E73E262F0d3C54b7211Af16CF"
+            - name: MOR_TOKEN_ADDRESS
+              value: "0x34a285a1b1c166420df5b6630132542923b5b27e"
+            - name: EXPLORER_API_URL
+              value: "https://api-sepolia.arbiscan.io/api"
+            - name: ETH_NODE_CHAIN_ID
+              value: "421614"
+            - name: ENVIRONMENT
+              value: "development"
+
+            # COMMON
+            - name: PROXY_ADDRESS
+              value: "0.0.0.0:3334"
+            - name: WEB_ADDRESS
+              value: "0.0.0.0:8083"
+            - name: WEB_PUBLIC_URL
+              value: "http://consumer-service:8083"
+            - name: ETH_NODE_USE_SUBSCRIPTIONS
+              value: "false"
+            - name: ETH_NODE_ADDRESS
+              value: "https://sepolia-rollup.arbitrum.io/rpc"
+            - name: ETH_NODE_LEGACY_TX
+              value: "false"
+            - name: PROXY_STORE_CHAT_CONTEXT
+              value: "true"
+            - name: PROXY_STORAGE_PATH
+              value: "./data/"
+            - name: LOG_COLOR
+              value: "true"
+
+          volumeMounts:
+            - name: consumer-data
+              mountPath: /app/data
+      volumes:
+        - name: consumer-data
+          persistentVolumeClaim:
+            claimName: consumer-data

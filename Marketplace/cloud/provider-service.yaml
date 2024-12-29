@@ -4,6 +4,8 @@ metadata:
   name: provider-service
 spec:
   type: LoadBalancer
+  externalTrafficPolicy: Local
+  internalTrafficPolicy: Local
   selector:
     app: provider
   ports:
