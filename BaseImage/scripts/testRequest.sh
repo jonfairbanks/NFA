@@ -40,7 +40,7 @@ fi
 #   }'
 
 echo -e "\nTesting streaming request..."
-curl -v -X POST http://localhost:$PORT/v1/chat/completions \
+curl -v -X POST http://34.127.54.11:8080 /v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "'"$MODEL_HANDLE"'",
