@@ -18,6 +18,27 @@ import (
 	"github.com/sony/gobreaker"
 )
 
+// Add these new environment variable getters at the top of the file
+func getMarketplaceBaseURL() string {
+    baseURL := os.Getenv("MARKETPLACE_BASE_URL")
+    if baseURL == "" {
+        baseURL = "http://marketplace:9000"
+    }
+    return baseURL
+}
+
+func getMarketplaceModelsEndpoint() string {
+    return fmt.Sprintf("%s/blockchain/models", getMarketplaceBaseURL())
+}
+
+func getMarketplaceSessionEndpoint(modelID string) string {
+    return fmt.Sprintf("%s/blockchain/models/%s/session", getMarketplaceBaseURL(), modelID)
+}
+
+func getMarketplaceChatEndpoint() string {
+    return os.Getenv("MARKETPLACE_URL")
+}
+
 // Update SessionManager to track model ID
 type SessionManager struct {
 	SessionID string
@@ -105,7 +126,7 @@ func ensureSession(modelID string) error {
 	}
 
 	// Updated session endpoint with model ID
-	sessionURL := fmt.Sprintf("http://marketplace:9000/blockchain/models/%s/session", modelID)
+	sessionURL := getMarketplaceSessionEndpoint(modelID)
 	resp, err := http.Post(sessionURL, "application/json", bytes.NewBuffer(reqBytes))
 	if err != nil {
 		log.Printf("Session establishment failed: %v", err)
@@ -255,8 +276,12 @@ func findModelID(modelHandle string) (string, error) {
 	}
 	modelCacheMux.RUnlock()
 
+	endpoint := getMarketplaceModelsEndpoint()
+	
+	log.Printf("Fetching models from: %s", endpoint)
+
 	// Query the marketplace API
-	resp, err := http.Get("http://marketplace:9000/blockchain/models?limit=100&order=desc")
+	resp, err := http.Get(fmt.Sprintf("%s?limit=100&order=desc", endpoint))
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch models: %v", err)
 	}
@@ -442,7 +467,7 @@ func ProxyChatCompletion(w http.ResponseWriter, r *http.Request) {
 
 // Modify forwardRequest to accept modelID and use the correct session
 func forwardRequest(requestBody map[string]interface{}, modelID string) (*http.Response, error) {
-	marketplaceURL := os.Getenv("MARKETPLACE_URL")
+	marketplaceURL := getMarketplaceChatEndpoint()
 	if marketplaceURL == "" {
 		return nil, fmt.Errorf("MARKETPLACE_URL environment variable is not set")
 	}
@@ -582,7 +607,10 @@ func StartProxyServer() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = os.Getenv("DEFAULT_PORT")
+		if port == "" {
+			port = "8080"
+		}
 	}
 	log.Printf("Proxy server is running on port %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

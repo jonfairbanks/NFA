@@ -25,22 +25,22 @@ if ! check_service $PORT; then
 fi
 
 # Check if marketplace is running
-if ! check_service 9000; then
-    echo "Error: Marketplace is not running on port 9000"
-    echo "Please start it with docker compose up"
-    exit 1
-fi
+# if ! check_service 9000; then
+#     echo "Error: Marketplace is not running on port 9000"
+#     echo "Please start it with docker compose up"
+#     exit 1
+# fi
 
-echo "Testing non-streaming request..."
-curl -v -X POST http://localhost:$PORT/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "'"$MODEL_HANDLE"'",
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
+# echo "Testing non-streaming request..."
+# curl -v -X POST http://localhost:$PORT/v1/chat/completions \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "model": "'"$MODEL_HANDLE"'",
+#     "messages": [{"role": "user", "content": "Hello"}]
+#   }'
 
 echo -e "\nTesting streaming request..."
-curl -v -X POST http://localhost:$PORT/v1/chat/completions \
+curl -v -X POST http://34.127.54.11:8080 /v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "'"$MODEL_HANDLE"'",

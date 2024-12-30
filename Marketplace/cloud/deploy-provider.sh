@@ -14,4 +14,4 @@ echo "Creating provider PVC..."
 kubectl apply -f provider-pvc.yaml
 
 echo "Deploying provider..."
-kubectl apply -f provider-deployment.yaml
+envsubst < provider-deployment.yaml | kubectl apply -f -

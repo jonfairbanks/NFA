@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfa-proxy-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfa-proxy
+  template:
+    metadata:
+      labels:
+        app: nfa-proxy
+    spec:
+      containers:
+      - name: nfa-proxy
+        image: srt0422/openai-morpheus-proxy:latest  # Updated to use Docker Hub
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: MARKETPLACE_URL
+          value: "http://34.118.234.36:8083/v1/chat/completions"
+        - name: SESSION_DURATION
+          value: "1h"
+        - name: WALLET_ADDRESS
+          valueFrom:
+            secretKeyRef:
+              name: nfa-proxy-secrets
+              key: wallet-address
+        - name: WALLET_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: nfa-proxy-secrets
+              key: wallet-private-key
+        - name: DEFAULT_PORT
+          value: "8080"
+        - name: MARKETPLACE_PORT
+          value: "8083"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30

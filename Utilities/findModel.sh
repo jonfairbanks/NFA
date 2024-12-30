@@ -20,9 +20,9 @@ load_env() {
 load_env
 
 # Validate required environment variables
-if [ -z "$PROVIDER_URL" ]; then
-    echo "Error: PROVIDER_URL is not set in .env file"
-    echo "Please add PROVIDER_URL=<your-provider-url> to your .env file"
+if [ -z "$MARKETPLACE_BASE_URL" ]; then
+    echo "Error: MARKETPLACE_BASE_URL is not set in .env file"
+    echo "Please add MARKETPLACE_BASE_URL=<your-marketplace-url> to your .env file"
     exit 1
 fi
 
@@ -82,11 +82,10 @@ fi
 check_dependencies
 
 # Only check marketplace port - don't try others
-MARKETPLACE_PORT=9000
 echo "Starting marketplace service check..."
 
 # Fix: Use the correct blockchain API endpoint for models
-MODELS_URL="${PROVIDER_URL}/blockchain/models"
+MODELS_URL="${MARKETPLACE_BASE_URL}/blockchain/models"
 echo "Testing marketplace API at $MODELS_URL"
 
 # Create temp files for curl output and logging
