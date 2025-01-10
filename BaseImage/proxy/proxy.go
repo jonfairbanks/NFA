@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,19 @@ func getMarketplaceChatEndpoint() string {
     return os.Getenv("MARKETPLACE_URL")
 }
 
+func getSessionExpirationSeconds() int {
+	expirationStr := os.Getenv("SESSION_EXPIRATION_SECONDS")
+	if expirationStr == "" {
+		return 1800 // Default to 30 minutes
+	}
+	expiration, err := strconv.Atoi(expirationStr)
+	if err != nil || expiration < 60 { // Minimum 1 minute
+		log.Printf("Invalid SESSION_EXPIRATION_SECONDS value: %s, using default of 1800", expirationStr)
+		return 1800
+	}
+	return expiration
+}
+
 // Update SessionManager to track model ID
 type SessionManager struct {
 	SessionID string
@@ -65,6 +79,7 @@ var (
 	circuitBreaker *gobreaker.CircuitBreaker
 	modelCache     = make(map[string]string) // map[modelHandle]modelId
 	modelCacheMux  sync.RWMutex
+	sessionExpirationSeconds = getSessionExpirationSeconds()
 )
 
 func init() {
@@ -78,6 +93,14 @@ func init() {
 			log.Printf("Circuit breaker state changed from %v to %v", from, to)
 		},
 	})
+
+	// Add periodic cleanup of expired sessions
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		for range ticker.C {
+			cleanupExpiredSessions()
+		}
+	}()
 }
 
 // Update MorpheusSession struct to include ModelID
@@ -100,21 +123,27 @@ func ensureSession(modelID string) error {
 	sessionMutex.Lock()
 	defer sessionMutex.Unlock()
 
-	_, currentModelID := SessionManagerInstance.GetSessionInfo()
+	// Clean up expired sessions first
+	cleanupExpiredSessions()
 
-	// Check if we already have a valid session for this model
 	session, exists := activeSessions[modelID]
-	if exists && session.SessionID != "" && time.Since(session.LastUsed) < 30*time.Minute {
-		if currentModelID == modelID {
+	if exists && session.SessionID != "" {
+		// Check if session is still valid using configurable expiration
+		if time.Since(session.LastUsed) < time.Duration(sessionExpirationSeconds)*time.Second {
+			session.LastUsed = time.Now() // Update last used time
+			SessionManagerInstance.UpdateSession(session.SessionID, modelID)
 			log.Printf("Using existing session for model %s: %s", modelID, session.SessionID)
-			session.LastUsed = time.Now()
 			return nil
+		} else {
+			// Session expired, remove it
+			delete(activeSessions, modelID)
+			log.Printf("Removed expired session for model %s", modelID)
 		}
 	}
 
-	log.Printf("Creating new session for model %s (current model: %s)", modelID, currentModelID)
-
 	// Create new session
+	log.Printf("Creating new session for model %s", modelID)
+
 	reqBody := map[string]interface{}{
 		"sessionDuration": 3600,
 		"failover":        false,
@@ -125,7 +154,6 @@ func ensureSession(modelID string) error {
 		return fmt.Errorf("failed to marshal session request: %v", err)
 	}
 
-	// Updated session endpoint with model ID
 	sessionURL := getMarketplaceSessionEndpoint(modelID)
 	resp, err := http.Post(sessionURL, "application/json", bytes.NewBuffer(reqBytes))
 	if err != nil {
@@ -146,8 +174,6 @@ func ensureSession(modelID string) error {
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return fmt.Errorf("failed to decode session response: %v", err)
 	}
-
-	log.Printf("Session response: %+v", result)
 
 	if result.Id == "" {
 		return fmt.Errorf("failed to get valid session ID from response")
@@ -593,12 +619,6 @@ func respondWithError(w http.ResponseWriter, statusCode int, message string) {
 
 // StartProxyServer starts the proxy server
 func StartProxyServer() {
-	// Validate required environment variables
-	walletAddress := os.Getenv("WALLET_ADDRESS")
-	if walletAddress == "" || walletAddress == "0x0000000000000000000000000000000000000000" {
-		log.Fatal("WALLET_ADDRESS environment variable must be set to a valid address")
-	}
-
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
@@ -614,4 +634,17 @@ func StartProxyServer() {
 	}
 	log.Printf("Proxy server is running on port %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+// Add a cleanup function for expired sessions
+func cleanupExpiredSessions() {
+	sessionMutex.Lock()
+	defer sessionMutex.Unlock()
+
+	for modelID, session := range activeSessions {
+		if time.Since(session.LastUsed) > time.Duration(sessionExpirationSeconds)*time.Second {
+			delete(activeSessions, modelID)
+			log.Printf("Cleaned up expired session for model %s", modelID)
+		}
+	}
 }
