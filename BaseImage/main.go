@@ -1,7 +1,12 @@
 package main
 
-import "github.com/MORpheusSoftware/NFA/BaseImage/proxy"
+import (
+	"log"
+
+	"github.com/MORpheusSoftware/NFA/BaseImage/proxy"
+)
 
 func main() {
-    proxy.StartProxyServer()
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	proxy.StartProxyServer()
 }
