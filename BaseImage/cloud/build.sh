@@ -5,7 +5,7 @@ VERSION=$(grep VERSION ../.env | cut -d '=' -f2)
 
 # Set variables
 IMAGE_NAME="openai-morpheus-proxy"
-REGISTRY="srt0422"  # Updated to use Docker Hub registry
+REGISTRY="srt0422"
 TARGET_OS="linux"
 TARGET_ARCH="amd64"
 PLATFORM="${TARGET_OS}/${TARGET_ARCH}"
