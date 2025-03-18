@@ -84,6 +84,7 @@ variable "consumer_node_env_vars" {
 variable "consumer_node_env_overrides" {
   type    = map(string)
   default = {}
+  description = "Used to override a particular consumer_node_env_vars value"
 }
 
 #####################
@@ -135,6 +136,7 @@ variable "nfa_proxy_env_vars" {
 variable "nfa_proxy_env_overrides" {
   type    = map(string)
   default = {}
+  description = "Used to override a particular nfa_proxy_env_vars value"
 }
 
 ###################
@@ -188,4 +190,5 @@ variable "web_app_env_vars" {
 variable "web_app_env_overrides" {
   type    = map(string)
   default = {}
+  description = "Used to override a particular web_app_env_vars value"
 }

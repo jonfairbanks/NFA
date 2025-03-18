@@ -1,4 +1,4 @@
-environment = "development" # Example of overwriting defaults defined in variables.tf
+environment = "development" # Example of overwriting a default string/number/bool defined in variables.tf
 
 # Example of overwriting a default env variable defined in variables.tf
 # web_app_env_overrides = {

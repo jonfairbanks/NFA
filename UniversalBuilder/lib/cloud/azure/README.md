@@ -44,4 +44,23 @@ A default set of variables for the Morpheus stack are defined in [variables.tf](
 
 If you would like to override any of these default values, or if you would like unique values in different environments, you can set alternate values in [development.tfvars](development.tfvars) and/or [production.tfvars](production.tfvars). Changing the defaults defined in [variables.tf](variables.tf) is not required.
 
+##### Overriding a string/number/bool 
+
+Simply set the same key with a different value in your `.tfvars` file:
+
+```
+environment = "development"
+```
+
+##### Overriding a single environment variable
+
+Utilize the relevant `*_env_overrides` variable. These overrides will be merged with the other env defaults defined in `variables.tf`.
+
+To override a web_app environment variable for example, set the following in your `.tfvars` file:
+```
+web_app_env_overrides = {
+    MODEL_NAME = "Llama 3.2 3B Instruct" 
+}
+```
+
 As mentioned above, these files will then be referenced when deploying the stack with `terraform plan` and `terraform apply`. 
