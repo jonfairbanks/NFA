@@ -37,3 +37,11 @@ terraform apply -var-file=development.tfvars
 ```
 
 A [sample GitHub workflow](morpheus-azure-deployment.yaml) to deploy this Terraform stack can be found in the repo. 
+
+### Overriding Default Variables
+
+A default set of variables for the Morpheus stack are defined in [variables.tf](variables.tf).
+
+If you would like to override any of these default values, or if you would like unique values in different environments, you can set alternate values in [development.tfvars](development.tfvars) and/or [production.tfvars](production.tfvars). Changing the defaults defined in [variables.tf](variables.tf) is not required.
+
+As mentioned above, these files will then be referenced when deploying the stack with `terraform plan` and `terraform apply`. 
