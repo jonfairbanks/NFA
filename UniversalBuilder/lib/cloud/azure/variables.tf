@@ -69,8 +69,8 @@ variable "consumer_node_memory" {
 variable "consumer_node_env_vars" {
   type = map(string)
   default = {
-    BLOCKCHAIN_HTTP_URL="" # "wss://arbitrum-mainnet.infura.io/ws/v3/your-project-id"
-    BLOCKCHAIN_WS_URL="" # "https://arbitrum-mainnet.infura.io/v3/your-project-id" public endpoint - https://sepolia-rollup.arbitrum.io/rpc
+    BLOCKCHAIN_HTTP_URL="wss://arbitrum-mainnet.infura.io/ws/v3/your-project-id"
+    BLOCKCHAIN_WS_URL="https://arbitrum-mainnet.infura.io/v3/your-project-id" # Public Endpoint - https://sepolia-rollup.arbitrum.io/rpc
     BLOCKSCOUT_API_URL="https://api-sepolia.arbiscan.io/api"
     COOKIE_FILE_PATH="/secrets/.cookie"
     CONSUMER_PASSWORD="your-secure-password"
@@ -178,7 +178,7 @@ variable "web_app_image_tag" {
 
 variable "web_app_port" {
     type = number
-    default = 8080
+    default = 3000
     description = "Service port to expose"
 }
 
