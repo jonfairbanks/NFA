@@ -103,7 +103,7 @@ variable "nfa_proxy_image_tag" {
 
 variable "nfa_proxy_port" {
     type = number
-    default = 8082
+    default = 8081
     description = "Service port to expose"
 }
 
@@ -125,7 +125,7 @@ variable "nfa_proxy_env_vars" {
     CONSUMER_USERNAME="admin"
     CONSUMER_PASSWORD="your-secure-password"
     CONSUMER_NODE_URL="http://morpheus-consumer-node:8082"
-    INTERNAL_API_PORT=8082
+    INTERNAL_API_PORT=8081
     MARKETPLACE_PORT=3333
     MARKETPLACE_BASE_URL="http://morpheus-consumer-node:8082"
     MARKETPLACE_URL="http://morpheus-consumer-node:8082"
@@ -183,7 +183,7 @@ variable "web_app_env_vars" {
     CHAT_COMPLETIONS_PATH="/v1/chat/completions"
     MODEL_NAME="LMR-Hermes-2-Theta-Llama-3-8B"
     NEXT_PUBLIC_CHAT_COMPLETIONS_PATH="/v1/chat/completions"
-    OPENAI_API_URL="http://morpheus-nfa-proxy:8082"
+    OPENAI_API_URL="http://morpheus-nfa-proxy:8081"
   }
 }
 
