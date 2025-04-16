@@ -4,11 +4,24 @@ locals {
     merged_consumer_node_env_vars = merge(var.consumer_node_env_vars, var.consumer_node_env_overrides)
 }
 
+resource "random_id" "dns" {
+  byte_length = 4
+}
+
 resource "azurerm_container_group" "web_backend" {
     name                = "morhpeus-container-group"
     resource_group_name = azurerm_resource_group.rg.name
     location            = azurerm_resource_group.rg.location
     os_type             = "Linux"
+
+    image_registry_credential {
+        server   = "docker.io"
+        username = var.docker_username
+        password = var.docker_password
+    }
+
+    ip_address_type = var.ip_address_type
+    dns_name_label = "morpheus-${var.environment}-${random_id.dns.hex}"
 
     ##########################
     # Morpheus Consumer Node #
@@ -66,4 +79,16 @@ resource "azurerm_container_group" "web_backend" {
             }
         }
     }
+}
+
+output "morpheus_fqdn" {
+  value = "http://${azurerm_container_group.web_backend.fqdn}"
+}
+
+output "container_ports" {
+  value = {
+    consumer_node = var.consumer_node_port
+    nfa_proxy     = var.nfa_proxy_port
+    web_app       = var.web_app_port
+  }
 }

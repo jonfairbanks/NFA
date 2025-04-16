@@ -17,6 +17,23 @@ variable "environment" {
     type = string
 }
 
+variable "ip_address_type" {
+    type = string
+    default = "Public"
+    description = "Determines how the Morpheus endpoint will be accessible. Should be one of: Public | Private | None"
+}
+
+variable "docker_username" {
+  type = string
+  description = "Username for authentication with DockerHub"
+}
+
+variable "docker_password" {
+  type = string
+  sensitive = true
+  description = "Personal Access Token for authentication with DockerHub"
+}
+
 #########################
 # Consumer Node Configs #
 #########################
